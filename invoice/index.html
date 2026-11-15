@@ -369,7 +369,7 @@ async function newDoc(type){
   const num = await nextNumber(type);
   const ref = await addDoc(collection(db,"documents"), {
     type, number:num, date: todayStr(), terms:"48h", dueDate: addDays(todayStr(),2),
-    clientId:"", clientName:"", clientPhone:"", clientAddr:"",
+    clientId:"", clientName:"", clientPhone:"", clientEmail:"", clientAddr:"",
     items:[{desc:"", qty:1, rate:0}], discount:{type:"amt", value:0},
     deposit:{enabled:false, value:0}, notes:"", status:"draft", createdAt: Date.now()
   });
@@ -408,6 +408,7 @@ function renderEditor(){
       <label>Pick a saved client</label><select id="fClientPick"><option value="">— Type new below —</option>${S.clients.map(c=>`<option value="${c.id}" ${E.clientId===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select>
       <label>Name</label><input id="fClientName" value="${esc(E.clientName||"")}" placeholder="Customer name">
       <label>Phone</label><input id="fClientPhone" value="${esc(E.clientPhone||"")}" placeholder="Phone">
+      <label>Email</label><input id="fClientEmail" value="${esc(E.clientEmail||"")}" placeholder="Email">
       <label>Service address</label><input id="fClientAddr" value="${esc(E.clientAddr||"")}" placeholder="Address">
     </div>
     <div class="card"><h3>Items</h3><div id="itemRows"></div>
@@ -427,6 +428,9 @@ function renderEditor(){
       ${!isInv?`<button id="mMakeInv">🧾 Make Invoice from this estimate</button>`:""}
       <button id="mDup">📄 Duplicate</button>
       <button id="mShare">🔗 Share summary</button>
+      <button id="mWa">🟢 Send by WhatsApp</button>
+      <button id="mSms">💬 Send by Text Message</button>
+      <button id="mEmail">✉️ Send by Email</button>
       <button id="mPrint">🖨 Print / Save PDF</button>
       <button id="mDel" style="color:#8B0000">🗑 Delete</button>
     </div>`;
@@ -467,8 +471,9 @@ function bindEditor(E0, t0){
   set("#fStatus", el => { E.status = el.value; });
   set("#fClientName", el => { E.clientName = el.value; E.clientId=""; });
   set("#fClientPhone", el => { E.clientPhone = el.value; });
+  set("#fClientEmail", el => { E.clientEmail = el.value; });
   set("#fClientAddr", el => { E.clientAddr = el.value; });
-  set("#fClientPick", el => { const c = S.clients.find(x=>x.id===el.value); if (c){ E.clientId=c.id; E.clientName=c.name||""; E.clientPhone=c.phone||""; E.clientAddr=c.address||""; $("#fClientName").value=E.clientName; $("#fClientPhone").value=E.clientPhone; $("#fClientAddr").value=E.clientAddr; } });
+  set("#fClientPick", el => { const c = S.clients.find(x=>x.id===el.value); if (c){ E.clientId=c.id; E.clientName=c.name||""; E.clientPhone=c.phone||""; E.clientEmail=c.email||""; E.clientAddr=c.address||""; $("#fClientName").value=E.clientName; $("#fClientPhone").value=E.clientPhone; $("#fClientEmail").value=E.clientEmail; $("#fClientAddr").value=E.clientAddr; } });
   set("#fDisc", el => { E.discount = {type:"amt", value:+el.value||0}; const p=$("#fDiscPct"); if(p) p.value=0; refreshTotals(); });
   set("#fDiscPct", el => { E.discount = {type:"pct", value:+el.value||0}; const a=$("#fDisc"); if(a) a.value=0; refreshTotals(); });
   set("#fDepOn", el => { E.deposit.enabled = el.checked; $("#depAmtWrap").classList.toggle("hidden", !el.checked); });
@@ -480,7 +485,7 @@ function bindEditor(E0, t0){
     const {id, ...data} = E;
     await updateDoc(doc(db,"documents", S.editId), data);
     if (E.clientName && !S.clients.some(c=>(c.name||"").toLowerCase()===E.clientName.toLowerCase()))
-      await addDoc(collection(db,"clients"), {name:E.clientName, phone:E.clientPhone||"", email:"", address:E.clientAddr||""});
+      await addDoc(collection(db,"clients"), {name:E.clientName, phone:E.clientPhone||"", email:E.clientEmail||"", address:E.clientAddr||""});
     alert("Saved."); S.view="list"; E=null; render();
   };
   const mi = $("#mMakeInv"); if (mi) mi.onclick = async () => {
@@ -503,6 +508,15 @@ function bindEditor(E0, t0){
     if (navigator.share) { try { await navigator.share({text:txt}); } catch(_){} }
     else { await navigator.clipboard.writeText(txt); alert("Summary copied — paste it into WhatsApp or email."); }
   };
+  const buildSummary = () => {
+    const t = totals({...E, id:S.editId});
+    const lines = (E.items||[]).filter(i=>i.desc||i.rate).map(i=>`• ${i.desc} — ${money((+i.qty||0)*(+i.rate||0))}`).join("\n");
+    return { t, txt: `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t.sub)}${t.disc?`\nDiscount: −${money(t.disc)}`:""}\nTax (13% HST): ${money(t.tax)}\nTotal: ${money(t.total)}${t.paid?`\nPaid: ${money(t.paid)}`:""}\nBalance due: ${money(t.balance)}\nPayment due within 48 hours.\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}` };
+  };
+  const custPhone = () => { let p = (E.clientPhone||"").replace(/\D/g,""); if (p.length===10) p = "1"+p; return p; };
+  $("#mWa").onclick = () => { const {txt} = buildSummary(); const p = custPhone(); window.open("https://wa.me/"+(p||"")+"?text="+encodeURIComponent(txt), "_blank"); };
+  $("#mSms").onclick = () => { const {txt} = buildSummary(); const p = custPhone(); window.location.href = "sms:"+(p? "+"+p : "")+"?&body="+encodeURIComponent(txt); };
+  $("#mEmail").onclick = () => { const {txt} = buildSummary(); const subj = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`; window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(txt); };
   $("#mPrint").onclick = () => { S.editSeg="preview"; renderEditor(); setTimeout(()=>window.print(), 150); };
   $("#mDel").onclick = async () => { if (!confirm("Delete this "+E.type+"? This cannot be undone.")) return; await deleteDoc(doc(db,"documents", S.editId)); S.view="list"; E=null; render(); };
 }
