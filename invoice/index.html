@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#01375B">
+<title>Shafa Invoice — Owner Login</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+:root{--navy:#01375B;--red:#C8102E;--gold:#E9B44C;--bg:#F2F5F8;--line:#D8E0E8;--txt:#1D2733;--mut:#5B6B7A}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--txt)}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:16px;padding:11px;border:1px solid var(--line);border-radius:9px;width:100%;background:#fff}
+label{font-size:13px;font-weight:bold;color:var(--mut);display:block;margin:12px 0 5px}
+.hidden{display:none!important}
+/* login */
+#loginView{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--navy)}
+.login-card{background:#fff;border-radius:16px;max-width:400px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.35)}
+.login-card img{width:140px}
+.login-card h1{color:var(--navy);font-size:22px;margin:12px 0 4px}
+.login-card p{color:var(--mut);font-size:14px;margin:4px 0 10px}
+.btn{display:block;width:100%;border:none;border-radius:10px;padding:15px;font-size:17px;font-weight:bold;margin-top:14px}
+.btn-red{background:var(--red);color:#fff}
+.btn-navy{background:var(--navy);color:#fff}
+.btn-gold{background:var(--gold);color:#222}
+.btn-ghost{background:#fff;color:var(--navy);border:2px solid var(--navy)}
+.link{background:none;border:none;color:var(--navy);text-decoration:underline;font-size:14px;margin-top:10px}
+.err{background:#FDECEC;color:#8B0000;border:1px solid #F3B8B8;padding:10px;border-radius:9px;font-size:14px;margin-top:12px;text-align:left}
+.okmsg{background:#E8F6EC;color:#14532D;border:1px solid #A9D8B4;padding:10px;border-radius:9px;font-size:14px;margin-top:12px;text-align:left}
+/* app shell */
+header.top{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
+header.top img{height:40px;background:#fff;border-radius:8px;padding:3px}
+header.top .t{font-weight:bold;font-size:17px;flex:1}
+header.top button{background:transparent;border:1px solid #fff;color:#fff;border-radius:8px;padding:7px 10px;font-size:13px}
+main{max-width:760px;margin:0 auto;padding:14px 14px 110px}
+.summary{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.summary .big{font-size:22px;font-weight:bold;color:var(--red)}
+.summary .lbl{font-size:12px;color:var(--mut);font-weight:bold;text-transform:uppercase;letter-spacing:.4px}
+.searchrow{display:flex;gap:8px;margin-bottom:12px}
+.searchrow input{flex:1}
+.yearhead{font-weight:bold;color:var(--navy);margin:18px 0 6px;display:flex;justify-content:space-between}
+.docrow{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.docrow .nm{font-weight:bold;font-size:16px}
+.docrow .sub{font-size:13px;color:var(--mut)}
+.docrow .amt{font-weight:bold;font-size:16px;white-space:nowrap}
+.badge{font-size:11px;font-weight:bold;padding:3px 8px;border-radius:20px;color:#fff;display:inline-block;margin-top:4px}
+.b-open{background:#2E7D32}.b-closed{background:#607D8B}.b-draft{background:#8D9EAD}.b-sent{background:#1565C0}.b-paid{background:#2E7D32}.b-overdue{background:var(--red)}
+.fab{position:fixed;right:18px;bottom:92px;width:62px;height:62px;border-radius:50%;background:var(--red);color:#fff;font-size:34px;border:none;box-shadow:0 6px 18px rgba(0,0,0,.3);z-index:30;line-height:1}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:25}
+nav.tabs button{flex:1;background:none;border:none;padding:10px 2px 12px;font-size:12px;font-weight:bold;color:var(--mut)}
+nav.tabs button.on{color:var(--navy);border-top:3px solid var(--gold)}
+/* editor */
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 6px;color:var(--navy);font-size:16px}
+.segtabs{display:flex;gap:6px;margin-bottom:12px}
+.segtabs button{flex:1;padding:11px;border-radius:9px;border:1px solid var(--line);background:#fff;font-weight:bold;color:var(--mut)}
+.segtabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.itemrow{display:flex;gap:7px;margin-bottom:8px;align-items:flex-start}
+.itemrow .d{flex:1}.itemrow .q{width:64px}.itemrow .r{width:96px}
+.itemrow .del{width:42px;padding:11px 0;background:#FDECEC;border:1px solid #F3B8B8;border-radius:9px;color:#8B0000;font-weight:bold}
+.totrow{display:flex;justify-content:space-between;padding:6px 0;font-size:15px}
+.totrow.grand{border-top:2px solid var(--navy);margin-top:6px;padding-top:10px;font-size:18px;font-weight:bold}
+.totrow.due{color:var(--red);font-weight:bold;font-size:17px}
+.rowflex{display:flex;gap:9px}.rowflex>div{flex:1}
+.switchrow{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.switch{position:relative;width:54px;height:30px;flex:none}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer}
+.switch .tr{position:absolute;inset:0;background:#B9C6D2;border-radius:20px;transition:.2s;pointer-events:none}
+.switch .tr:after{content:"";position:absolute;width:24px;height:24px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s}
+.switch input:checked + .tr{background:var(--navy)}
+.switch input:checked + .tr:after{left:27px}
+.menu-list button{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:16px;margin-bottom:8px}
+.small{font-size:13px;color:var(--mut)}
+/* preview doc */
+.docpage{background:#fff;padding:26px 22px;border:1px solid var(--line);border-radius:6px}
+.docpage .dhead{display:flex;gap:14px;align-items:center;border-bottom:3px solid var(--navy);padding-bottom:12px}
+.docpage .dhead img{width:110px}
+.docpage h2{color:var(--navy);margin:0;font-size:24px;text-transform:uppercase}
+.docpage table{width:100%;border-collapse:collapse;margin:14px 0}
+.docpage th{background:var(--navy);color:#fff;text-align:left;padding:8px;font-size:13px}
+.docpage td{padding:8px;border-bottom:1px solid var(--line);font-size:14px}
+.docpage .r{text-align:right}
+.docpage .terms{font-size:11.5px;color:#444;line-height:1.5;border-top:1px solid var(--line);padding-top:10px;margin-top:14px;white-space:pre-wrap}
+@media print{
+  body{background:#fff}
+  header.top,nav.tabs,.fab,.no-print{display:none!important}
+  main{padding:0;max-width:none}
+  .docpage{border:none;border-radius:0}
+  .print-only{display:block!important}
+}
+.print-only{display:none}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginView">
+  <div class="login-card">
+    <img src="/assets/logo.png" alt="Shafa Plumbing Services">
+    <h1>Invoice App — Owner Login</h1>
+    <p>Private. Only the owner can sign in.</p>
+    <label style="text-align:left">Email</label>
+    <input id="liEmail" type="email" autocomplete="username" value="nurshafa3376@gmail.com">
+    <label style="text-align:left">Password</label>
+    <input id="liPass" type="password" autocomplete="current-password" placeholder="Your password">
+    <div id="liErr" class="err hidden"></div>
+    <div id="liOk" class="okmsg hidden"></div>
+    <button class="btn btn-red" id="btnLogin">Sign In</button>
+    <button class="btn btn-ghost" id="btnSignup">First time? Create owner account</button>
+    <button class="link" id="btnForgot">Forgot password</button>
+    <p class="small" style="margin-top:14px">New accounts can only open the app with the owner's email. All invoices stay locked to that one account.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appView" class="hidden">
+  <header class="top">
+    <img src="/assets/logo.png" alt="">
+    <div class="t" id="hdrTitle">Invoices</div>
+    <button id="btnLogout">Sign out</button>
+  </header>
+  <main id="main"></main>
+  <button class="fab hidden" id="fab">+</button>
+  <nav class="tabs">
+    <button data-tab="invoices" class="on">Invoices</button>
+    <button data-tab="estimates">Estimates</button>
+    <button data-tab="expenses">Expenses</button>
+    <button data-tab="payments">Payments</button>
+    <button data-tab="more">More</button>
+  </nav>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const OWNER_EMAIL = "nurshafa3376@gmail.com";
+const firebaseConfig = {
+  apiKey: "AIzaSyCzz9ZA7ZLDPf_5tdmaqfFqX4qK3lxcpdE",
+  authDomain: "shafa-invoice.firebaseapp.com",
+  projectId: "shafa-invoice",
+  storageBucket: "shafa-invoice.firebasestorage.app",
+  messagingSenderId: "166541457033",
+  appId: "1:166541457033:web:22d9b64ff098e32298b858"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = s => document.querySelector(s);
+const money = n => "$" + (Math.round((+n||0)*100)/100).toLocaleString("en-CA",{minimumFractionDigits:2, maximumFractionDigits:2});
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const todayStr = (d=new Date()) => d.toISOString().slice(0,10);
+const addDays = (ds, n) => { const d = new Date(ds+"T12:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+const fmtDate = ds => ds ? new Date(ds+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"}) : "";
+
+const GUARANTEE = "The Guarantee shall be for labour only in respect of faulty workmanship for 12 months from the date of completion with the manufacturers warranty in force. The Guarantee will become null & void if the work/appliance completed/supplied by the Company is: (a) Subject to misuse or negligence. (b) Repaired, modified or tampered with by anyone other than a Company operative. The Company will accept no liability for, or guarantee suitability, materials supplied by the Customer & will accept no liability for any consequential damage or fault. The company will not guarantee any work in respect of blockages in waste & drainage systems etc. Work is guaranteed only in respect of work directly undertaken by the company & payment in fully has been made.";
+const DEFAULT_SETTINGS = {
+  bizName: "Shafa Plumbing Services",
+  bizAddr: "106 Cleta Dr, Scarborough, ON M1K 3G7",
+  bizPhone: "647-710-3376",
+  bizEmail: "nurshafa3376@gmail.com",
+  bizWeb: "www.shafaplumbing.ca",
+  bizLicence: "Licence No. P34765",
+  taxRate: 13,
+  guarantee: GUARANTEE,
+  payLine: "We accept cash, debit, credit cards and e-transfer.",
+  invSeq: 0, estSeq: 0
+};
+const SEED_ITEMS = [
+  {name:"Drain Snaking", price:250}, {name:"Toilet Installation & Drain Snaking", price:250},
+  {name:"Shower Head Installation", price:99}, {name:"Hot Water Tank Installation (labour)", price:490},
+  {name:"Toilet Supply (Glacier Bay)", price:249}, {name:"Sump Pump Installation", price:0},
+  {name:"Water Heater Installation", price:0}, {name:"Emergency Call", price:0}
+];
+
+let S = { settings:null, clients:[], items:[], docs:[], expenses:[], payments:[], tab:"invoices", view:"list", editId:null, editSeg:"edit", search:"" };
+
+/* ---------- AUTH ---------- */
+function liMsg(err, ok){
+  $("#liErr").classList.toggle("hidden", !err); $("#liErr").textContent = err||"";
+  $("#liOk").classList.toggle("hidden", !ok); $("#liOk").textContent = ok||"";
+}
+function authErr(e){
+  const m = {"auth/invalid-credential":"Wrong email or password.","auth/user-not-found":"No account with that email yet — use 'Create owner account' the first time.","auth/wrong-password":"Wrong password.","auth/email-already-in-use":"That account already exists — just sign in.","auth/weak-password":"Password is too weak — use at least 6 characters.","auth/invalid-email":"That email doesn't look right.","auth/too-many-requests":"Too many tries — wait a few minutes."}[e.code] || ("Something went wrong: " + e.message);
+  return m;
+}
+$("#btnLogin").onclick = async () => {
+  liMsg("",""); 
+  try { await signInWithEmailAndPassword(auth, $("#liEmail").value.trim(), $("#liPass").value); }
+  catch(e){ liMsg(authErr(e),""); }
+};
+$("#btnSignup").onclick = async () => {
+  liMsg("","");
+  const em = $("#liEmail").value.trim();
+  if (em.toLowerCase() !== OWNER_EMAIL) { liMsg("Only the owner's email ("+OWNER_EMAIL+") can create the account.",""); return; }
+  try { await createUserWithEmailAndPassword(auth, em, $("#liPass").value); }
+  catch(e){ liMsg(authErr(e),""); }
+};
+$("#btnForgot").onclick = async () => {
+  liMsg("","");
+  try { await sendPasswordResetEmail(auth, $("#liEmail").value.trim()); liMsg("", "Password reset email sent — check your inbox."); }
+  catch(e){ liMsg(authErr(e),""); }
+};
+$("#btnLogout").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { $("#appView").classList.add("hidden"); $("#loginView").classList.remove("hidden"); return; }
+  if (user.email.toLowerCase() !== OWNER_EMAIL) { await signOut(auth); liMsg("That account is not the owner account. Your invoices stay locked to "+OWNER_EMAIL+".",""); return; }
+  $("#loginView").classList.add("hidden"); $("#appView").classList.remove("hidden");
+  await loadAll();
+  render();
+});
+
+async function loadAll(){
+  const sref = doc(db,"settings","main");
+  const ss = await getDoc(sref);
+  if (!ss.exists()) { await setDoc(sref, DEFAULT_SETTINGS); S.settings = {...DEFAULT_SETTINGS}; }
+  else S.settings = {...DEFAULT_SETTINGS, ...ss.data()};
+  const itemsSnap = await getDocs(collection(db,"items"));
+  if (itemsSnap.empty) { for (const it of SEED_ITEMS) await addDoc(collection(db,"items"), it); }
+  onSnapshot(collection(db,"clients"), sn => { S.clients = sn.docs.map(d=>({id:d.id,...d.data()})); if(!$("#appView").classList.contains("hidden")) render(); });
+  onSnapshot(collection(db,"items"), sn => { S.items = sn.docs.map(d=>({id:d.id,...d.data()})); });
+  onSnapshot(collection(db,"documents"), sn => { S.docs = sn.docs.map(d=>({id:d.id,...d.data()})); if(S.view==="list") render(); });
+  onSnapshot(collection(db,"expenses"), sn => { S.expenses = sn.docs.map(d=>({id:d.id,...d.data()})); if(S.view==="list"&&(S.tab==="expenses")) render(); });
+  onSnapshot(collection(db,"payments"), sn => { S.payments = sn.docs.map(d=>({id:d.id,...d.data()})); if(S.view==="list"&&(S.tab==="payments")) render(); });
+}
+
+/* ---------- CALCS ---------- */
+function totals(d){
+  const sub = (d.items||[]).reduce((a,i)=> a + (+i.qty||0)*(+i.rate||0), 0);
+  let disc = 0;
+  if (d.discount) disc = d.discount.type === "pct" ? sub * (+d.discount.value||0)/100 : (+d.discount.value||0);
+  const taxable = Math.max(0, sub - disc);
+  const tax = taxable * (S.settings.taxRate||13)/100;
+  const total = taxable + tax;
+  const paid = S.payments.filter(p=>p.docId===d.id).reduce((a,p)=>a+(+p.amount||0),0);
+  return { sub, disc, tax, total, paid, balance: Math.max(0, total - paid) };
+}
+function docStatus(d){
+  if (d.type==="estimate") return d.status==="closed" ? "Closed" : "Open";
+  const t = totals(d);
+  if (t.total>0 && t.balance<=0) return "Paid";
+  if (d.dueDate && d.dueDate < todayStr() && t.balance>0) return "Overdue";
+  return d.status==="sent" ? "Sent" : "Draft";
+}
+const badgeCls = s => ({"Open":"b-open","Closed":"b-closed","Draft":"b-draft","Sent":"b-sent","Paid":"b-paid","Overdue":"b-overdue"}[s]||"b-draft");
+
+/* ---------- LIST VIEWS ---------- */
+const main = $("#main"), fab = $("#fab");
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; S.view="list"; render(); });
+fab.onclick = () => {
+  if (S.tab==="invoices") newDoc("invoice");
+  else if (S.tab==="estimates") newDoc("estimate");
+  else if (S.tab==="expenses") newExpense();
+  else if (S.tab==="more") {}
+};
+
+function render(){
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab===S.tab));
+  $("#hdrTitle").textContent = {invoices:"Invoices",estimates:"Estimates",expenses:"Expenses",payments:"Payments",more:"More"}[S.tab];
+  fab.classList.toggle("hidden", !(S.view==="list" && ["invoices","estimates","expenses"].includes(S.tab)));
+  if (S.view==="editor") return renderEditor();
+  if (S.view==="clients") return renderClients();
+  if (S.view==="items") return renderItems();
+  if (S.view==="settings") return renderSettings();
+  if (S.tab==="invoices"||S.tab==="estimates") return renderDocList(S.tab==="invoices"?"invoice":"estimate");
+  if (S.tab==="expenses") return renderExpenses();
+  if (S.tab==="payments") return renderPayments();
+  if (S.tab==="more") return renderMore();
+}
+
+function renderDocList(type){
+  let docs = S.docs.filter(d=>d.type===type);
+  const owed = type==="invoice" ? docs.reduce((a,d)=>a+totals(d).balance,0) : docs.reduce((a,d)=>a+totals(d).total,0);
+  const yr = new Date().getFullYear();
+  const yrTotal = docs.filter(d=>(d.date||"").startsWith(yr)).reduce((a,d)=>a+totals(d).total,0);
+  if (S.search) { const q = S.search.toLowerCase(); docs = docs.filter(d => (d.clientName||"").toLowerCase().includes(q) || (d.number||"").toLowerCase().includes(q)); }
+  docs.sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.number||"").localeCompare(a.number||""));
+  if (type==="invoice") docs.sort((a,b)=> (docStatus(a)==="Overdue"?0:1) - (docStatus(b)==="Overdue"?0:1) || (b.date||"").localeCompare(a.date||""));
+  const years = [...new Set(docs.map(d=>(d.date||yr+"").slice(0,4)))];
+  let h = `<div class="summary"><div><div class="lbl">${type==="invoice"?"Owed to you":"Open estimates"}</div><div class="big">${money(owed)}</div></div><div style="text-align:right"><div class="lbl">${yr} total</div><div style="font-weight:bold">${money(yrTotal)}</div></div></div>`;
+  h += `<div class="searchrow"><input id="q" placeholder="Search name or number" value="${esc(S.search)}"></div>`;
+  if (!docs.length) h += `<div class="card" style="text-align:center;padding:30px"><p>No ${type}s yet.</p><p class="small">Tap the red + button to make your first one.</p></div>`;
+  for (const y of years){
+    const yd = docs.filter(d=>(d.date||"").slice(0,4)===y);
+    h += `<div class="yearhead"><span>${y}</span><span>${money(yd.reduce((a,d)=>a+totals(d).total,0))}</span></div>`;
+    for (const d of yd){
+      const t = totals(d), st = docStatus(d);
+      h += `<div class="docrow" data-open="${d.id}"><div><div class="nm">${esc(d.clientName||"No client")}</div><div class="sub">${esc(d.number)} · ${fmtDate(d.date)}</div><span class="badge ${badgeCls(st)}">${st}</span></div><div class="amt">${money(t.total)}${t.balance>0&&t.balance<t.total?`<div class="sub" style="color:var(--red)">Bal ${money(t.balance)}</div>`:""}</div></div>`;
+    }
+  }
+  main.innerHTML = h;
+  $("#q").oninput = e => { S.search = e.target.value; renderDocList(type); const q=$("#q"); q.focus(); q.setSelectionRange(q.value.length,q.value.length); };
+  main.querySelectorAll("[data-open]").forEach(el => el.onclick = () => { S.editId = el.dataset.open; S.view="editor"; S.editSeg="edit"; render(); });
+}
+
+function renderExpenses(){
+  const yr = new Date().getFullYear();
+  const tot = S.expenses.filter(e=>(e.date||"").startsWith(yr)).reduce((a,e)=>a+(+e.amount||0),0);
+  let h = `<div class="summary"><div><div class="lbl">Expenses ${yr}</div><div class="big" style="color:var(--navy)">${money(tot)}</div></div></div>`;
+  const list = [...S.expenses].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  if (!list.length) h += `<div class="card" style="text-align:center;padding:30px"><p>No expenses yet.</p><p class="small">Tap + to add gas, parts, tools…</p></div>`;
+  for (const e of list) h += `<div class="docrow" data-exp="${e.id}"><div><div class="nm">${esc(e.desc||"Expense")}</div><div class="sub">${fmtDate(e.date)} · ${esc(e.category||"General")}</div></div><div class="amt">${money(e.amount)}</div></div>`;
+  main.innerHTML = h;
+  main.querySelectorAll("[data-exp]").forEach(el => el.onclick = () => editExpense(el.dataset.exp));
+}
+
+function renderPayments(){
+  const yr = new Date().getFullYear();
+  const tot = S.payments.filter(p=>(p.date||"").startsWith(yr)).reduce((a,p)=>a+(+p.amount||0),0);
+  let h = `<div class="summary"><div><div class="lbl">Payments received ${yr}</div><div class="big" style="color:#2E7D32">${money(tot)}</div></div></div>`;
+  const list = [...S.payments].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  if (!list.length) h += `<div class="card" style="text-align:center;padding:30px"><p>No payments recorded yet.</p><p class="small">Open an invoice → History tab → Record payment.</p></div>`;
+  for (const p of list){
+    const d = S.docs.find(x=>x.id===p.docId);
+    h += `<div class="docrow"><div><div class="nm">${esc(p.clientName|| (d?d.clientName:"") || "")}</div><div class="sub">${fmtDate(p.date)} · ${esc(p.method||"")} ${d? "· "+esc(d.number):""}</div></div><div class="amt" style="color:#2E7D32">${money(p.amount)}</div></div>`;
+  }
+  main.innerHTML = h;
+}
+
+function renderMore(){
+  main.innerHTML = `<div class="menu-list">
+    <button data-m="clients">👤 Clients</button>
+    <button data-m="items">🧰 My services & prices</button>
+    <button data-m="settings">⚙️ Business info & guarantee text</button>
+    <button data-m="backup">⬇️ Backup my data (download file)</button>
+    <button data-m="restore">⬆️ Restore from backup file</button>
+    <input type="file" id="restoreFile" accept=".json" class="hidden">
+    <div class="card"><h3>How your app is protected</h3><p class="small">Only the signed-in owner account (${esc(OWNER_EMAIL)}) can open this app or read its data. The database rules enforce the same lock. Your data syncs between your phone and computer automatically.</p></div>
+  </div>`;
+  main.querySelectorAll("[data-m]").forEach(b => b.onclick = async () => {
+    const m = b.dataset.m;
+    if (m==="clients"){ S.view="clients"; render(); }
+    if (m==="items"){ S.view="items"; render(); }
+    if (m==="settings"){ S.view="settings"; render(); }
+    if (m==="backup"){
+      const data = {settings:S.settings, clients:S.clients, items:S.items, documents:S.docs, expenses:S.expenses, payments:S.payments};
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download = "shafa-invoice-backup-"+todayStr()+".json"; a.click();
+    }
+    if (m==="restore"){ $("#restoreFile").click(); }
+  });
+  $("#restoreFile").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    if (!confirm("Restore will ADD the backup's records to your app. Continue?")) return;
+    const data = JSON.parse(await f.text());
+    for (const c of (data.clients||[])) { const {id, ...rest} = c; await addDoc(collection(db,"clients"), rest); }
+    for (const d of (data.documents||[])) { const {id, ...rest} = d; await addDoc(collection(db,"documents"), rest); }
+    for (const x of (data.expenses||[])) { const {id, ...rest} = x; await addDoc(collection(db,"expenses"), rest); }
+    for (const p of (data.payments||[])) { const {id, ...rest} = p; await addDoc(collection(db,"payments"), rest); }
+    alert("Backup restored.");
+  };
+}
+
+/* ---------- DOCUMENT EDITOR ---------- */
+let E = null; // working copy
+async function nextNumber(type){
+  const key = type==="invoice" ? "invSeq" : "estSeq";
+  const n = (S.settings[key]||0) + 1;
+  S.settings[key] = n;
+  await updateDoc(doc(db,"settings","main"), {[key]: n});
+  return (type==="invoice" ? "INV" : "EST") + String(n).padStart(4,"0");
+}
+async function newDoc(type){
+  const num = await nextNumber(type);
+  const ref = await addDoc(collection(db,"documents"), {
+    type, number:num, date: todayStr(), terms:"48h", dueDate: addDays(todayStr(),2),
+    clientId:"", clientName:"", clientPhone:"", clientAddr:"",
+    items:[{desc:"", qty:1, rate:0}], discount:{type:"amt", value:0},
+    deposit:{enabled:false, value:0}, notes:"", status:"draft", createdAt: Date.now()
+  });
+  S.editId = ref.id; S.view="editor"; S.editSeg="edit";
+}
+function curDoc(){ return S.docs.find(d=>d.id===S.editId); }
+
+function renderEditor(){
+  const d = curDoc();
+  if (!d) { S.view="list"; return render(); }
+  if (!E || E.id !== d.id) E = JSON.parse(JSON.stringify(d));
+  const t = totals({...E, id:d.id});
+  const isInv = E.type==="invoice";
+  let h = `<button class="btn-ghost btn no-print" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button>
+  <div class="segtabs no-print">
+    <button data-seg="edit" class="${S.editSeg==="edit"?"on":""}">Edit</button>
+    <button data-seg="preview" class="${S.editSeg==="preview"?"on":""}">Preview</button>
+    <button data-seg="history" class="${S.editSeg==="history"?"on":""}">History</button>
+  </div>`;
+  if (S.editSeg==="preview") h += previewHTML(E, t);
+  else if (S.editSeg==="history") h += historyHTML(E, t);
+  else {
+    h += `<div class="card"><h3>${isInv?"Invoice":"Estimate"} ${esc(E.number)}</h3>
+      <div class="rowflex"><div><label>Date</label><input type="date" id="fDate" value="${E.date||""}"></div>
+      <div><label>Payment terms</label><select id="fTerms">
+        ${[["receipt","Due on receipt"],["48h","48 hours"],["7","7 days"],["14","14 days"],["30","30 days"]].map(([v,l])=>`<option value="${v}" ${E.terms===v?"selected":""}>${l}</option>`).join("")}
+      </select></div></div>
+      <label>Due date</label><input type="date" id="fDue" value="${E.dueDate||""}">
+      <label>Status</label><select id="fStatus">
+        ${isInv
+          ? [["draft","Draft"],["sent","Sent"]].map(([v,l])=>`<option value="${v}" ${E.status===v?"selected":""}>${l}</option>`).join("") + `<option disabled>Paid / Overdue — set automatically</option>`
+          : [["open","Open"],["closed","Closed"]].map(([v,l])=>`<option value="${v}" ${(E.status||"open")===v?"selected":""}>${l}</option>`).join("")}
+      </select>
+    </div>
+    <div class="card"><h3>Client</h3>
+      <label>Pick a saved client</label><select id="fClientPick"><option value="">— Type new below —</option>${S.clients.map(c=>`<option value="${c.id}" ${E.clientId===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select>
+      <label>Name</label><input id="fClientName" value="${esc(E.clientName||"")}" placeholder="Customer name">
+      <label>Phone</label><input id="fClientPhone" value="${esc(E.clientPhone||"")}" placeholder="Phone">
+      <label>Service address</label><input id="fClientAddr" value="${esc(E.clientAddr||"")}" placeholder="Address">
+    </div>
+    <div class="card"><h3>Items</h3><div id="itemRows"></div>
+      <button class="btn btn-navy" id="addItem" style="margin-top:6px">+ Add Item</button>
+      <label>…or quick-pick a saved service</label><select id="quickPick"><option value="">Choose a service…</option>${S.items.map(i=>`<option value="${i.id}">${esc(i.name)} — ${money(i.price)}</option>`).join("")}</select>
+    </div>
+    <div class="card"><h3>Totals</h3>
+      <div class="rowflex"><div><label>Discount $</label><input type="number" id="fDisc" step="0.01" min="0" value="${E.discount&&E.discount.type==="amt"?E.discount.value:0}"></div>
+      <div><label>Discount %</label><input type="number" id="fDiscPct" step="0.1" min="0" value="${E.discount&&E.discount.type==="pct"?E.discount.value:0}"></div></div>
+      <div class="switchrow"><span><strong>Request deposit</strong></span><span class="switch"><input type="checkbox" id="fDepOn" ${E.deposit&&E.deposit.enabled?"checked":""}><span class="tr"></span></span></div>
+      <div id="depAmtWrap" class="${E.deposit&&E.deposit.enabled?"":"hidden"}"><label>Deposit amount $</label><input type="number" id="fDepAmt" step="0.01" min="0" value="${E.deposit?E.deposit.value||0:0}"></div>
+      <div id="totalsBox"></div>
+    </div>
+    <div class="card"><h3>Notes</h3><textarea id="fNotes" rows="3" placeholder="Anything the customer should know…">${esc(E.notes||"")}</textarea></div>
+    <button class="btn btn-red" id="saveBtn">Save ${isInv?"Invoice":"Estimate"}</button>
+    <div class="menu-list" style="margin-top:14px">
+      ${!isInv?`<button id="mMakeInv">🧾 Make Invoice from this estimate</button>`:""}
+      <button id="mDup">📄 Duplicate</button>
+      <button id="mShare">🔗 Share summary</button>
+      <button id="mPrint">🖨 Print / Save PDF</button>
+      <button id="mDel" style="color:#8B0000">🗑 Delete</button>
+    </div>`;
+  }
+  main.innerHTML = h;
+  $("#backBtn").onclick = () => { S.view="list"; E=null; render(); };
+  main.querySelectorAll("[data-seg]").forEach(b => b.onclick = () => { S.editSeg = b.dataset.seg; renderEditor(); });
+  if (S.editSeg==="preview"){ const pb = $("#printBtn"); if (pb) pb.onclick = () => window.print(); return; }
+  if (S.editSeg==="history"){ bindHistory(E); return; }
+  bindEditor(E, t);
+}
+
+function totalsHTML(t){
+  return `<div class="totrow"><span>Subtotal</span><span>${money(t.sub)}</span></div>
+  ${t.disc?`<div class="totrow"><span>Discount</span><span>−${money(t.disc)}</span></div>`:""}
+  <div class="totrow"><span>Tax (${S.settings.taxRate}%)</span><span>${money(t.tax)}</span></div>
+  <div class="totrow grand"><span>Total</span><span>${money(t.total)}</span></div>
+  ${t.paid?`<div class="totrow"><span>Paid</span><span>${money(t.paid)}</span></div>`:""}
+  <div class="totrow due"><span>Balance Due</span><span>${money(t.balance)}</span></div>`;
+}
+function drawItemRows(){
+  const wrap = $("#itemRows"); if (!wrap) return;
+  wrap.innerHTML = E.items.map((i,ix)=>`<div class="itemrow">
+    <input class="d" data-ix="${ix}" data-f="desc" value="${esc(i.desc)}" placeholder="Description">
+    <input class="q" data-ix="${ix}" data-f="qty" type="number" step="0.01" min="0" value="${i.qty}">
+    <input class="r" data-ix="${ix}" data-f="rate" type="number" step="0.01" min="0" value="${i.rate}">
+    <button class="del" data-del="${ix}">✕</button></div>`).join("");
+  wrap.querySelectorAll("input").forEach(inp => inp.oninput = () => { const ix=+inp.dataset.ix, f=inp.dataset.f; E.items[ix][f] = f==="desc"? inp.value : (+inp.value||0); refreshTotals(); });
+  wrap.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { E.items.splice(+b.dataset.del,1); if(!E.items.length) E.items=[{desc:"",qty:1,rate:0}]; drawItemRows(); refreshTotals(); });
+}
+function refreshTotals(){ const tb = $("#totalsBox"); if (tb) tb.innerHTML = totalsHTML(totals({...E, id:S.editId})); }
+function bindEditor(E0, t0){
+  drawItemRows(); refreshTotals();
+  const set = (id, fn) => { const el = $(id); if (el) el.oninput = el.onchange = () => fn(el); };
+  set("#fDate", el => { E.date = el.value; });
+  set("#fTerms", el => { E.terms = el.value; const map = {receipt:0,"48h":2,"7":7,"14":14,"30":30}; E.dueDate = addDays(E.date||todayStr(), map[el.value]??2); $("#fDue").value = E.dueDate; });
+  set("#fDue", el => { E.dueDate = el.value; });
+  set("#fStatus", el => { E.status = el.value; });
+  set("#fClientName", el => { E.clientName = el.value; E.clientId=""; });
+  set("#fClientPhone", el => { E.clientPhone = el.value; });
+  set("#fClientAddr", el => { E.clientAddr = el.value; });
+  set("#fClientPick", el => { const c = S.clients.find(x=>x.id===el.value); if (c){ E.clientId=c.id; E.clientName=c.name||""; E.clientPhone=c.phone||""; E.clientAddr=c.address||""; $("#fClientName").value=E.clientName; $("#fClientPhone").value=E.clientPhone; $("#fClientAddr").value=E.clientAddr; } });
+  set("#fDisc", el => { E.discount = {type:"amt", value:+el.value||0}; const p=$("#fDiscPct"); if(p) p.value=0; refreshTotals(); });
+  set("#fDiscPct", el => { E.discount = {type:"pct", value:+el.value||0}; const a=$("#fDisc"); if(a) a.value=0; refreshTotals(); });
+  set("#fDepOn", el => { E.deposit.enabled = el.checked; $("#depAmtWrap").classList.toggle("hidden", !el.checked); });
+  set("#fDepAmt", el => { E.deposit.value = +el.value||0; });
+  set("#fNotes", el => { E.notes = el.value; });
+  $("#addItem").onclick = () => { E.items.push({desc:"",qty:1,rate:0}); drawItemRows(); };
+  $("#quickPick").onchange = el => { const it = S.items.find(x=>x.id===el.target.value); if (it){ E.items.push({desc:it.name, qty:1, rate:+it.price||0}); drawItemRows(); refreshTotals(); } el.target.value=""; };
+  $("#saveBtn").onclick = async () => {
+    const {id, ...data} = E;
+    await updateDoc(doc(db,"documents", S.editId), data);
+    if (E.clientName && !S.clients.some(c=>(c.name||"").toLowerCase()===E.clientName.toLowerCase()))
+      await addDoc(collection(db,"clients"), {name:E.clientName, phone:E.clientPhone||"", email:"", address:E.clientAddr||""});
+    alert("Saved."); S.view="list"; E=null; render();
+  };
+  const mi = $("#mMakeInv"); if (mi) mi.onclick = async () => {
+    if (!confirm("Make an invoice from this estimate?")) return;
+    const {id, ...data} = E;
+    const num = await nextNumber("invoice");
+    await addDoc(collection(db,"documents"), {...data, type:"invoice", number:num, status:"draft", date: todayStr(), terms:"48h", dueDate: addDays(todayStr(),2), createdAt: Date.now()});
+    await updateDoc(doc(db,"documents", S.editId), {...data, status:"closed"});
+    alert("Invoice "+num+" created."); S.view="list"; S.tab="invoices"; E=null; render();
+  };
+  $("#mDup").onclick = async () => {
+    const {id, ...data} = E;
+    const num = await nextNumber(E.type);
+    const ref = await addDoc(collection(db,"documents"), {...data, number:num, status: E.type==="invoice"?"draft":"open", createdAt: Date.now()});
+    S.editId = ref.id; E=null; renderEditor();
+  };
+  $("#mShare").onclick = async () => {
+    const t = totals({...E, id:S.editId});
+    const txt = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}\nFor: ${E.clientName}\nTotal: ${money(t.total)} · Balance due: ${money(t.balance)}\nPayment due within 48 hours.\nCall/WhatsApp ${S.settings.bizPhone} · ${S.settings.bizWeb}`;
+    if (navigator.share) { try { await navigator.share({text:txt}); } catch(_){} }
+    else { await navigator.clipboard.writeText(txt); alert("Summary copied — paste it into WhatsApp or email."); }
+  };
+  $("#mPrint").onclick = () => { S.editSeg="preview"; renderEditor(); setTimeout(()=>window.print(), 150); };
+  $("#mDel").onclick = async () => { if (!confirm("Delete this "+E.type+"? This cannot be undone.")) return; await deleteDoc(doc(db,"documents", S.editId)); S.view="list"; E=null; render(); };
+}
+
+function previewHTML(d, t){
+  const st = S.settings;
+  const termsLine = d.terms==="receipt" ? "Payment due on receipt." : d.terms==="48h" ? "Payment due within 48 hours." : "Payment due within "+d.terms+" days.";
+  return `<div class="no-print" style="margin-bottom:12px"><button class="btn btn-red" id="printBtn">🖨 Print / Save PDF</button></div>
+  <div class="docpage">
+    <div class="dhead"><img src="/assets/logo.png" alt=""><div>
+      <div style="font-weight:bold;color:var(--navy)">${esc(st.bizName)}</div>
+      <div class="small">${esc(st.bizAddr)}<br>${esc(st.bizPhone)} · ${esc(st.bizEmail)}<br>${esc(st.bizWeb)} · ${esc(st.bizLicence)}</div>
+    </div><div style="margin-left:auto;text-align:right"><h2>${d.type}</h2><div class="small">${esc(d.number)}<br>${fmtDate(d.date)}<br>Due: ${fmtDate(d.dueDate)}</div></div></div>
+    <p style="margin:14px 0 0"><strong>To:</strong> ${esc(d.clientName||"")}${d.clientAddr? "<br><span class='small'>"+esc(d.clientAddr)+"</span>":""}${d.clientPhone? "<br><span class='small'>"+esc(d.clientPhone)+"</span>":""}</p>
+    <table><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr>
+    ${(d.items||[]).filter(i=>i.desc||i.rate).map(i=>`<tr><td>${esc(i.desc)}</td><td class="r">${i.qty}</td><td class="r">${money(i.rate)}</td><td class="r">${money((+i.qty||0)*(+i.rate||0))}</td></tr>`).join("")}
+    </table>
+    <div style="max-width:300px;margin-left:auto">${totalsHTML(t)}</div>
+    ${d.deposit&&d.deposit.enabled?`<p><strong>Deposit requested: ${money(d.deposit.value)}</strong></p>`:""}
+    <p><strong>${termsLine}</strong><br>${esc(st.payLine)}</p>
+    ${d.notes?`<p><strong>Notes:</strong> ${esc(d.notes)}</p>`:""}
+    <div class="terms"><strong>Guarantee:</strong> ${esc(st.guarantee)}</div>
+    <p style="margin-top:16px">Thank you for your business.<br>— ${esc(st.bizName)}</p>
+  </div>`;
+}
+
+function historyHTML(d, t){
+  const pays = S.payments.filter(p=>p.docId===d.id).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  let h = `<div class="card"><h3>Payments on ${esc(d.number)}</h3>
+    <div class="totrow"><span>Total</span><span>${money(t.total)}</span></div>
+    <div class="totrow"><span>Paid</span><span>${money(t.paid)}</span></div>
+    <div class="totrow due"><span>Balance Due</span><span>${money(t.balance)}</span></div>
+    ${pays.map(p=>`<div class="totrow"><span>${fmtDate(p.date)} · ${esc(p.method)}</span><span>${money(p.amount)}</span></div>`).join("") || '<p class="small">No payments yet.</p>'}
+  </div>`;
+  if (d.type==="invoice") h += `<div class="card"><h3>Record a payment</h3>
+    <label>Amount $</label><input type="number" id="pAmt" step="0.01" min="0" value="${t.balance>0?t.balance.toFixed(2):""}">
+    <label>Method</label><select id="pMethod"><option>Cash</option><option>Debit</option><option>Credit Card</option><option>E-Transfer</option><option>Cheque</option></select>
+    <label>Date</label><input type="date" id="pDate" value="${todayStr()}">
+    <button class="btn btn-red" id="pSave">Save Payment</button></div>`;
+  return h;
+}
+function bindHistory(d){
+  const b = $("#pSave"); if (!b) return;
+  b.onclick = async () => {
+    const amt = +$("#pAmt").value||0; if (amt<=0) { alert("Enter an amount."); return; }
+    await addDoc(collection(db,"payments"), {docId:d.id, clientName:d.clientName||"", amount:amt, method:$("#pMethod").value, date:$("#pDate").value||todayStr()});
+    renderEditor();
+  };
+}
+
+/* ---------- CLIENTS / ITEMS / SETTINGS / EXPENSES ---------- */
+function renderClients(){
+  let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button><div class="card"><h3>Add a client</h3>
+  <label>Name</label><input id="cName"><label>Phone</label><input id="cPhone"><label>Email</label><input id="cEmail"><label>Address</label><input id="cAddr">
+  <button class="btn btn-navy" id="cAdd">Add Client</button></div>`;
+  for (const c of [...S.clients].sort((a,b)=>(a.name||"").localeCompare(b.name||"")))
+    h += `<div class="docrow"><div><div class="nm">${esc(c.name)}</div><div class="sub">${esc(c.phone||"")} ${esc(c.address||"")}</div></div><button class="del" style="width:42px;padding:9px 0;background:#FDECEC;border:1px solid #F3B8B8;border-radius:9px;color:#8B0000;font-weight:bold" data-cdel="${c.id}">✕</button></div>`;
+  main.innerHTML = h;
+  $("#backBtn").onclick = () => { S.view="list"; render(); };
+  $("#cAdd").onclick = async () => { const n = $("#cName").value.trim(); if (!n) return alert("Enter a name."); await addDoc(collection(db,"clients"), {name:n, phone:$("#cPhone").value, email:$("#cEmail").value, address:$("#cAddr").value}); };
+  main.querySelectorAll("[data-cdel]").forEach(b => b.onclick = async () => { if (confirm("Delete this client?")) await deleteDoc(doc(db,"clients", b.dataset.cdel)); });
+}
+function renderItems(){
+  let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button><div class="card"><h3>Add a service</h3>
+  <label>Service name</label><input id="iName"><label>Usual price $</label><input id="iPrice" type="number" step="0.01" min="0">
+  <button class="btn btn-navy" id="iAdd">Add Service</button></div>`;
+  for (const i of S.items)
+    h += `<div class="docrow"><div><div class="nm">${esc(i.name)}</div><div class="sub">${money(i.price)}</div></div><button style="width:42px;padding:9px 0;background:#FDECEC;border:1px solid #F3B8B8;border-radius:9px;color:#8B0000;font-weight:bold" data-idel="${i.id}">✕</button></div>`;
+  main.innerHTML = h;
+  $("#backBtn").onclick = () => { S.view="list"; render(); };
+  $("#iAdd").onclick = async () => { const n = $("#iName").value.trim(); if (!n) return alert("Enter a service name."); await addDoc(collection(db,"items"), {name:n, price:+$("#iPrice").value||0}); };
+  main.querySelectorAll("[data-idel]").forEach(b => b.onclick = async () => { if (confirm("Delete this service?")) await deleteDoc(doc(db,"items", b.dataset.idel)); });
+}
+function renderSettings(){
+  const st = S.settings;
+  main.innerHTML = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button>
+  <div class="card"><h3>Business Info</h3>
+  <label>Business name</label><input id="sName" value="${esc(st.bizName)}">
+  <label>Address</label><input id="sAddr" value="${esc(st.bizAddr)}">
+  <label>Phone</label><input id="sPhone" value="${esc(st.bizPhone)}">
+  <label>Email</label><input id="sEmail" value="${esc(st.bizEmail)}">
+  <label>Website</label><input id="sWeb" value="${esc(st.bizWeb)}">
+  <label>Licence line</label><input id="sLic" value="${esc(st.bizLicence)}">
+  <label>Tax rate % (HST)</label><input id="sTax" type="number" step="0.1" value="${st.taxRate}">
+  <label>Payment methods line</label><input id="sPay" value="${esc(st.payLine)}">
+  <label>Guarantee text (prints on every document)</label><textarea id="sGuar" rows="8">${esc(st.guarantee)}</textarea>
+  <button class="btn btn-red" id="sSave">Save Settings</button></div>`;
+  $("#backBtn").onclick = () => { S.view="list"; render(); };
+  $("#sSave").onclick = async () => {
+    const upd = {bizName:$("#sName").value, bizAddr:$("#sAddr").value, bizPhone:$("#sPhone").value, bizEmail:$("#sEmail").value, bizWeb:$("#sWeb").value, bizLicence:$("#sLic").value, taxRate:+$("#sTax").value||13, payLine:$("#sPay").value, guarantee:$("#sGuar").value};
+    await updateDoc(doc(db,"settings","main"), upd); Object.assign(S.settings, upd); alert("Settings saved.");
+  };
+}
+function newExpense(){ editExpense(null); }
+function editExpense(id){
+  const e = id ? S.expenses.find(x=>x.id===id) : {date: todayStr(), desc:"", amount:0, category:"General"};
+  if (!e) return;
+  main.innerHTML = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button>
+  <div class="card"><h3>${id?"Edit":"New"} Expense</h3>
+  <label>Date</label><input type="date" id="eDate" value="${e.date||todayStr()}">
+  <label>Description</label><input id="eDesc" value="${esc(e.desc||"")}" placeholder="Parts, gas, tools…">
+  <label>Amount $</label><input id="eAmt" type="number" step="0.01" min="0" value="${e.amount||""}">
+  <label>Category</label><select id="eCat">${["General","Parts","Gas","Tools","Vehicle","Insurance","Other"].map(c=>`<option ${e.category===c?"selected":""}>${c}</option>`).join("")}</select>
+  <button class="btn btn-red" id="eSave">Save Expense</button>
+  ${id?'<button class="btn btn-ghost" id="eDel">Delete</button>':""}</div>`;
+  $("#backBtn").onclick = () => render();
+  $("#eSave").onclick = async () => {
+    const data = {date:$("#eDate").value, desc:$("#eDesc").value, amount:+$("#eAmt").value||0, category:$("#eCat").value};
+    if (id) await updateDoc(doc(db,"expenses", id), data); else await addDoc(collection(db,"expenses"), data);
+    render();
+  };
+  const del = $("#eDel"); if (del) del.onclick = async () => { if (confirm("Delete this expense?")) { await deleteDoc(doc(db,"expenses", id)); render(); } };
+}
+if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
