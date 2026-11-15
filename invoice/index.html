@@ -371,7 +371,7 @@ async function newDoc(type){
     type, number:num, date: todayStr(), terms:"48h", dueDate: addDays(todayStr(),2),
     clientId:"", clientName:"", clientPhone:"", clientEmail:"", clientAddr:"",
     items:[{desc:"", qty:1, rate:0}], discount:{type:"amt", value:0},
-    deposit:{enabled:false, value:0}, notes:"", status:"draft", createdAt: Date.now()
+    deposit:{enabled:false, value:0}, notes:"", status:"draft", sigLine:false, photos:[], createdAt: Date.now()
   });
   S.editId = ref.id; S.view="editor"; S.editSeg="edit";
 }
@@ -423,7 +423,15 @@ function renderEditor(){
       <div id="totalsBox"></div>
       <button class="btn btn-gold" id="recPayBtn">💰 Record a Payment — Paid / Due</button>
     </div>
-    <div class="card"><h3>Notes</h3><textarea id="fNotes" rows="3" placeholder="Anything the customer should know…">${esc(E.notes||"")}</textarea></div>
+    <div class="card"><h3>Notes</h3><textarea id="fNotes" rows="3" placeholder="Anything the customer should know…">${esc(E.notes||"")}</textarea>
+      <div class="switchrow"><span><strong>Request client signature</strong><br><span class="small">Prints a signature line on the document</span></span><span class="switch"><input type="checkbox" id="fSig" ${E.sigLine?"checked":""}><span class="tr"></span></span></div>
+    </div>
+    <div class="card"><h3>Photos</h3>
+      <div id="photoRow" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <label style="margin-top:10px">Add a photo of the job</label>
+      <input type="file" id="fPhoto" accept="image/*" multiple>
+      <p class="small" id="photoMsg">Photos are stored privately in your account and print with the document.</p>
+    </div>
     <button class="btn btn-red" id="saveBtn">Save ${isInv?"Invoice":"Estimate"}</button>
     <div class="menu-list" style="margin-top:14px">
       ${!isInv?`<button id="mMakeInv">🧾 Make Invoice from this estimate</button>`:""}
@@ -473,6 +481,30 @@ function drawItemRows(){
   wrap.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { E.items.splice(+b.dataset.del,1); if(!E.items.length) E.items=[{desc:"",qty:1,rate:0}]; drawItemRows(); refreshTotals(); });
 }
 function refreshTotals(){ const tb = $("#totalsBox"); if (tb) tb.innerHTML = totalsHTML(totals({...E, id:S.editId})); }
+function drawPhotos(){
+  const row = $("#photoRow"); if (!row) return;
+  row.innerHTML = (E.photos||[]).map((p,ix)=>`<div style="position:relative"><img src="${esc(p.url)}" style="width:92px;height:92px;object-fit:cover;border-radius:9px;border:1px solid var(--line)"><button data-pdel="${ix}" style="position:absolute;top:-7px;right:-7px;width:26px;height:26px;border-radius:50%;background:#C8102E;color:#fff;border:none;font-weight:bold">✕</button></div>`).join("") || '<span class="small">No photos yet.</span>';
+  row.querySelectorAll("[data-pdel]").forEach(b => b.onclick = async () => {
+    E.photos.splice(+b.dataset.pdel,1);
+    drawPhotos();
+  });
+}
+function compressPhoto(file){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 1000, sc = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width*sc); cv.height = Math.round(img.height*sc);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+      let q = 0.72, out = cv.toDataURL("image/jpeg", q);
+      while (out.length > 340000 && q > 0.4) { q -= 0.12; out = cv.toDataURL("image/jpeg", q); }
+      URL.revokeObjectURL(img.src); res(out);
+    };
+    img.onerror = rej;
+    img.src = URL.createObjectURL(file);
+  });
+}
 function bindEditor(E0, t0){
   drawItemRows(); refreshTotals();
   const set = (id, fn) => { const el = $(id); if (el) el.oninput = el.onchange = () => fn(el); };
@@ -490,6 +522,21 @@ function bindEditor(E0, t0){
   set("#fDepOn", el => { E.deposit.enabled = el.checked; $("#depAmtWrap").classList.toggle("hidden", !el.checked); });
   set("#fDepAmt", el => { E.deposit.value = +el.value||0; });
   set("#fNotes", el => { E.notes = el.value; });
+  set("#fSig", el => { E.sigLine = el.checked; });
+  drawPhotos();
+  const fp = $("#fPhoto");
+  if (fp) fp.onchange = async () => {
+    const files = [...fp.files]; if (!files.length) return;
+    if ((E.photos||[]).length + files.length > 3) { $("#photoMsg").textContent = "Maximum 3 photos per document."; fp.value=""; return; }
+    $("#photoMsg").textContent = "Adding photo…";
+    for (const f of files) {
+      const url = await compressPhoto(f);
+      E.photos = [...(E.photos||[]), {url}];
+    }
+    $("#photoMsg").textContent = "Photo added — tap Save to keep it on this document.";
+    drawPhotos();
+    fp.value = "";
+  };
   $("#addItem").onclick = () => { E.items.push({desc:"",qty:1,rate:0}); drawItemRows(); };
   $("#quickPick").onchange = el => { const it = S.items.find(x=>x.id===el.target.value); if (it){ E.items.push({desc:it.name, qty:1, rate:+it.price||0}); drawItemRows(); refreshTotals(); } el.target.value=""; };
   const rp = $("#recPayBtn"); if (rp) rp.onclick = () => { S.editSeg="history"; renderEditor(); window.scrollTo(0,0); };
@@ -555,21 +602,25 @@ function previewHTML(d, t){
     ${d.deposit&&d.deposit.enabled?`<p><strong>Deposit requested: ${money(d.deposit.value)}</strong></p>`:""}
     <p><strong>${termsLine}</strong><br>${esc(st.payLine)}</p>
     ${d.notes?`<p><strong>Notes:</strong> ${esc(d.notes)}</p>`:""}
+    ${(d.photos&&d.photos.length)?`<div style="margin-top:12px"><strong>Job photos:</strong><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${d.photos.map(p=>`<img src="${esc(p.url)}" style="width:31%;border:1px solid var(--line);border-radius:6px">`).join("")}</div></div>`:""}
+    ${d.sigLine?`<div style="margin-top:26px;display:flex;gap:30px"><div style="flex:1;border-top:1px solid #333;padding-top:5px" class="small">Client signature</div><div style="flex:1;border-top:1px solid #333;padding-top:5px" class="small">Date</div></div>`:""}
     <div class="terms"><strong>Guarantee:</strong> ${esc(st.guarantee)}</div>
     <p style="margin-top:16px">Thank you for your business.<br>— ${esc(st.bizName)}</p>
   </div>`;
 }
 
 function historyHTML(d, t){
-  const pays = S.payments.filter(p=>p.docId===d.id).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const pays = S.payments.filter(p=>p.docId===d.id).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  let run = 0;
+  const rows = pays.map(p=>{ run += (+p.amount||0); const bal = Math.max(0, t.total - run); return `<div class="totrow"><span>${fmtDate(p.date)} · ${esc(p.method)}${bal>0?" (partial)":""}</span><span>${money(p.amount)} → balance ${money(bal)}</span></div>`; }).join("");
   let h = `<div class="card"><h3>Payments on ${esc(d.number)}</h3>
     <div class="totrow"><span>Total</span><span>${money(t.total)}</span></div>
     <div class="totrow"><span>Paid</span><span>${money(t.paid)}</span></div>
     <div class="totrow due"><span>Balance Due</span><span>${money(t.balance)}</span></div>
-    ${pays.map(p=>`<div class="totrow"><span>${fmtDate(p.date)} · ${esc(p.method)}</span><span>${money(p.amount)}</span></div>`).join("") || '<p class="small">No payments yet.</p>'}
+    ${rows || '<p class="small">No payments yet.</p>'}
   </div>`;
   if (d.type==="invoice" || d.type==="estimate") h += `<div class="card"><h3>Record a payment</h3>
-    <label>Amount $</label><input type="number" id="pAmt" step="0.01" min="0" value="${t.balance>0?t.balance.toFixed(2):""}">
+    <label>Amount $ — full or partial (part payments are fine, the rest stays as Balance Due)</label><input type="number" id="pAmt" step="0.01" min="0" value="${t.balance>0?t.balance.toFixed(2):""}">
     <label>Method</label><select id="pMethod"><option>Cash</option><option>Debit</option><option>Credit Card</option><option>E-Transfer</option><option>Cheque</option></select>
     <label>Date</label><input type="date" id="pDate" value="${todayStr()}">
     <button class="btn btn-red" id="pSave">Save Payment</button></div>`;
