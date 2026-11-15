@@ -236,10 +236,11 @@ function totals(d){
   let disc = 0;
   if (d.discount) disc = d.discount.type === "pct" ? sub * (+d.discount.value||0)/100 : (+d.discount.value||0);
   const taxable = Math.max(0, sub - disc);
-  const tax = taxable * (S.settings.taxRate||13)/100;
+  const rate = d.taxOff ? 0 : (S.settings.taxRate||13);
+  const tax = taxable * rate/100;
   const total = taxable + tax;
   const paid = S.payments.filter(p=>p.docId===d.id).reduce((a,p)=>a+(+p.amount||0),0);
-  return { sub, disc, tax, total, paid, balance: Math.max(0, total - paid) };
+  return { sub, disc, tax, total, paid, rate, balance: Math.max(0, total - paid) };
 }
 function docStatus(d){
   if (d.type==="estimate") return d.status==="closed" ? "Closed" : "Open";
@@ -330,7 +331,9 @@ function renderMore(){
     <button data-m="settings">⚙️ Business info & guarantee text</button>
     <button data-m="backup">⬇️ Backup my data (download file)</button>
     <button data-m="restore">⬆️ Restore from backup file</button>
+    <button data-m="import">📥 Import an estimate / invoice (prepared file)</button>
     <input type="file" id="restoreFile" accept=".json" class="hidden">
+    <input type="file" id="impFile" accept=".json" class="hidden">
     <div class="card"><h3>How your app is protected</h3><p class="small">Only the signed-in owner account (${esc(OWNER_EMAIL)}) can open this app or read its data. The database rules enforce the same lock. Your data syncs between your phone and computer automatically.</p></div>
   </div>`;
   main.querySelectorAll("[data-m]").forEach(b => b.onclick = async () => {
@@ -343,7 +346,34 @@ function renderMore(){
       const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})); a.download = "shafa-invoice-backup-"+todayStr()+".json"; a.click();
     }
     if (m==="restore"){ $("#restoreFile").click(); }
+    if (m==="import"){ $("#impFile").click(); }
   });
+  $("#impFile").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (data.kind !== "shafa-doc-import" || !data.doc) { alert("This file is not a Shafa document import."); return; }
+      const cd = data.client || {};
+      let client = S.clients.find(c => c.name === cd.name && (c.phone||"") === (cd.phone||""));
+      let clientId = client ? client.id : "";
+      if (!client) {
+        const ref = await addDoc(collection(db,"clients"), { name: cd.name||"Client", phone: cd.phone||"", email: cd.email||"", addr: cd.addr||"" });
+        clientId = ref.id;
+      }
+      const type = data.doc.type === "invoice" ? "invoice" : "estimate";
+      const num = await nextNumber(type);
+      await addDoc(collection(db,"documents"), {
+        type, number: num, date: todayStr(), terms: "48h", dueDate: addDays(todayStr(),2),
+        clientId, clientName: cd.name||"", clientPhone: cd.phone||"", clientEmail: cd.email||"", clientAddr: cd.addr||"",
+        items: (data.doc.items||[]).map(it => ({ desc: it.desc||it.name||"", qty: +it.qty||1, rate: (it.rate!=null? +it.rate : +it.price)||0 })),
+        discount: { type:"amt", value:0 }, taxOff: data.doc.taxRate === 0,
+        deposit: { enabled:false, value:0 }, notes: data.doc.notes||"", status: type==="invoice" ? "draft" : "open", sigLine: false, photos: [], createdAt: Date.now()
+      });
+      alert("Imported ✓ " + num + " for " + (cd.name||"client") + " — find it in your " + (type==="invoice" ? "Invoices" : "Estimates") + " tab.");
+      S.tab = type==="invoice" ? "invoices" : "estimates"; S.view = "list"; render();
+    } catch(err) { alert("Import failed: " + err.message); }
+    e.target.value = "";
+  };
   $("#restoreFile").onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
     if (!confirm("Restore will ADD the backup's records to your app. Continue?")) return;
@@ -370,7 +400,7 @@ async function newDoc(type){
   const ref = await addDoc(collection(db,"documents"), {
     type, number:num, date: todayStr(), terms:"48h", dueDate: addDays(todayStr(),2),
     clientId:"", clientName:"", clientPhone:"", clientEmail:"", clientAddr:"",
-    items:[{desc:"", qty:1, rate:0}], discount:{type:"amt", value:0},
+    items:[{desc:"", qty:1, rate:0}], discount:{type:"amt", value:0}, taxOff:false,
     deposit:{enabled:false, value:0}, notes:"", status:"draft", sigLine:false, photos:[], createdAt: Date.now()
   });
   S.editId = ref.id; S.view="editor"; S.editSeg="edit";
@@ -418,6 +448,7 @@ function renderEditor(){
     <div class="card"><h3>Totals</h3>
       <div class="rowflex"><div><label>Discount $</label><input type="number" id="fDisc" step="0.01" min="0" value="${E.discount&&E.discount.type==="amt"?E.discount.value:0}"></div>
       <div><label>Discount %</label><input type="number" id="fDiscPct" step="0.1" min="0" value="${E.discount&&E.discount.type==="pct"?E.discount.value:0}"></div></div>
+      <div class="switchrow"><span><strong>Charge HST tax</strong><br><span class="small">Turn off for a no-tax document</span></span><span class="switch"><input type="checkbox" id="fTaxOn" ${E.taxOff?"":"checked"}><span class="tr"></span></span></div>
       <div class="switchrow"><span><strong>Request deposit</strong></span><span class="switch"><input type="checkbox" id="fDepOn" ${E.deposit&&E.deposit.enabled?"checked":""}><span class="tr"></span></span></div>
       <div id="depAmtWrap" class="${E.deposit&&E.deposit.enabled?"":"hidden"}"><label>Deposit amount $</label><input type="number" id="fDepAmt" step="0.01" min="0" value="${E.deposit?E.deposit.value||0:0}"></div>
       <div id="totalsBox"></div>
@@ -451,7 +482,7 @@ function renderEditor(){
     const pb = $("#printBtn"); if (pb) pb.onclick = () => window.print();
     const t2 = totals({...E, id:d.id});
     const lines = (E.items||[]).filter(i=>i.desc||i.rate).map(i=>`• ${i.desc} — ${money((+i.qty||0)*(+i.rate||0))}`).join("\n");
-    const txt = `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t2.sub)}${t2.disc?`\nDiscount: −${money(t2.disc)}`:""}\nTax (13% HST): ${money(t2.tax)}\nTotal: ${money(t2.total)}${t2.paid?`\nPaid: ${money(t2.paid)}`:""}\nBalance due: ${money(t2.balance)}\nPayment due within 48 hours.\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}`;
+    const txt = `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t2.sub)}${t2.disc?`\nDiscount: −${money(t2.disc)}`:""}\nTax (${t2.rate}% HST): ${money(t2.tax)}\nTotal: ${money(t2.total)}${t2.paid?`\nPaid: ${money(t2.paid)}`:""}\nBalance due: ${money(t2.balance)}\nPayment due within 48 hours.\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}`;
     let ph = (E.clientPhone||"").replace(/\D/g,""); if (ph.length===10) ph = "1"+ph;
     const bw = $("#pWa"); if (bw) bw.onclick = () => window.open("https://wa.me/"+(ph||"")+"?text="+encodeURIComponent(txt), "_blank");
     const bs = $("#pSms"); if (bs) bs.onclick = () => { window.location.href = "sms:"+(ph? "+"+ph : "")+"?&body="+encodeURIComponent(txt); };
@@ -465,7 +496,7 @@ function renderEditor(){
 function totalsHTML(t){
   return `<div class="totrow"><span>Subtotal</span><span>${money(t.sub)}</span></div>
   ${t.disc?`<div class="totrow"><span>Discount</span><span>−${money(t.disc)}</span></div>`:""}
-  <div class="totrow"><span>Tax (${S.settings.taxRate}%)</span><span>${money(t.tax)}</span></div>
+  <div class="totrow"><span>Tax (${t.rate}%)</span><span>${money(t.tax)}</span></div>
   <div class="totrow grand"><span>Total</span><span>${money(t.total)}</span></div>
   <div class="totrow"><span>Paid</span><span>${money(t.paid)}</span></div>
   <div class="totrow due"><span>Balance Due</span><span>${money(t.balance)}</span></div>`;
@@ -519,6 +550,7 @@ function bindEditor(E0, t0){
   set("#fClientPick", el => { const c = S.clients.find(x=>x.id===el.value); if (c){ E.clientId=c.id; E.clientName=c.name||""; E.clientPhone=c.phone||""; E.clientEmail=c.email||""; E.clientAddr=c.address||""; $("#fClientName").value=E.clientName; $("#fClientPhone").value=E.clientPhone; $("#fClientEmail").value=E.clientEmail; $("#fClientAddr").value=E.clientAddr; } });
   set("#fDisc", el => { E.discount = {type:"amt", value:+el.value||0}; const p=$("#fDiscPct"); if(p) p.value=0; refreshTotals(); });
   set("#fDiscPct", el => { E.discount = {type:"pct", value:+el.value||0}; const a=$("#fDisc"); if(a) a.value=0; refreshTotals(); });
+  set("#fTaxOn", el => { E.taxOff = !el.checked; refreshTotals(); });
   set("#fDepOn", el => { E.deposit.enabled = el.checked; $("#depAmtWrap").classList.toggle("hidden", !el.checked); });
   set("#fDepAmt", el => { E.deposit.value = +el.value||0; });
   set("#fNotes", el => { E.notes = el.value; });
