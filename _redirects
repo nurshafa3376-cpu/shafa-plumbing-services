@@ -1,0 +1,2 @@
+# Netlify: serve the single-page site for every path (SPA fallback, HTTP 200, no redirect)
+/*  /index.html  200
