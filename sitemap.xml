@@ -11,4 +11,6 @@
   <url><loc>https://www.shafaplumbing.ca/contact</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.shafaplumbing.ca/book-online</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.shafaplumbing.ca/emergency-plumber-toronto</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.shafaplumbing.ca/blog/</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.shafaplumbing.ca/blog/frozen-pipes-toronto/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>
