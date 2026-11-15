@@ -438,7 +438,17 @@ function renderEditor(){
   main.innerHTML = h;
   $("#backBtn").onclick = () => { S.view="list"; E=null; render(); };
   main.querySelectorAll("[data-seg]").forEach(b => b.onclick = () => { S.editSeg = b.dataset.seg; renderEditor(); });
-  if (S.editSeg==="preview"){ const pb = $("#printBtn"); if (pb) pb.onclick = () => window.print(); return; }
+  if (S.editSeg==="preview"){
+    const pb = $("#printBtn"); if (pb) pb.onclick = () => window.print();
+    const t2 = totals({...E, id:d.id});
+    const lines = (E.items||[]).filter(i=>i.desc||i.rate).map(i=>`• ${i.desc} — ${money((+i.qty||0)*(+i.rate||0))}`).join("\n");
+    const txt = `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t2.sub)}${t2.disc?`\nDiscount: −${money(t2.disc)}`:""}\nTax (13% HST): ${money(t2.tax)}\nTotal: ${money(t2.total)}${t2.paid?`\nPaid: ${money(t2.paid)}`:""}\nBalance due: ${money(t2.balance)}\nPayment due within 48 hours.\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}`;
+    let ph = (E.clientPhone||"").replace(/\D/g,""); if (ph.length===10) ph = "1"+ph;
+    const bw = $("#pWa"); if (bw) bw.onclick = () => window.open("https://wa.me/"+(ph||"")+"?text="+encodeURIComponent(txt), "_blank");
+    const bs = $("#pSms"); if (bs) bs.onclick = () => { window.location.href = "sms:"+(ph? "+"+ph : "")+"?&body="+encodeURIComponent(txt); };
+    const be = $("#pEmail"); if (be) be.onclick = () => { window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(`${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`)+"&body="+encodeURIComponent(txt); };
+    return;
+  }
   if (S.editSeg==="history"){ bindHistory(E); return; }
   bindEditor(E, t);
 }
@@ -524,7 +534,12 @@ function bindEditor(E0, t0){
 function previewHTML(d, t){
   const st = S.settings;
   const termsLine = d.terms==="receipt" ? "Payment due on receipt." : d.terms==="48h" ? "Payment due within 48 hours." : "Payment due within "+d.terms+" days.";
-  return `<div class="no-print" style="margin-bottom:12px"><button class="btn btn-red" id="printBtn">🖨 Print / Save PDF</button></div>
+  return `<div class="no-print" style="margin-bottom:12px"><button class="btn btn-red" id="printBtn">🖨 Print / Save PDF</button>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button class="btn btn-navy" id="pWa" style="margin-top:0">🟢 WhatsApp</button>
+    <button class="btn btn-navy" id="pSms" style="margin-top:0">💬 Text</button>
+    <button class="btn btn-navy" id="pEmail" style="margin-top:0">✉️ Email</button>
+  </div></div>
   <div class="docpage">
     <div class="dhead"><img src="/assets/logo.png" alt=""><div>
       <div style="font-weight:bold;color:var(--navy)">${esc(st.bizName)}</div>
