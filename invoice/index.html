@@ -363,7 +363,7 @@ function renderMore(){
       const type = data.doc.type === "invoice" ? "invoice" : "estimate";
       const num = await nextNumber(type);
       await addDoc(collection(db,"documents"), {
-        type, number: num, date: todayStr(), terms: "48h", dueDate: addDays(todayStr(),2),
+        type, number: num, date: todayStr(), terms: type==="invoice" ? "48h" : "30", dueDate: addDays(todayStr(), type==="invoice" ? 2 : 30),
         clientId, clientName: cd.name||"", clientPhone: cd.phone||"", clientEmail: cd.email||"", clientAddr: cd.addr||"",
         items: (data.doc.items||[]).map(it => ({ desc: it.desc||it.name||"", qty: +it.qty||1, rate: (it.rate!=null? +it.rate : +it.price)||0 })),
         discount: { type:"amt", value:0 }, taxOff: data.doc.taxRate === 0,
@@ -398,7 +398,7 @@ async function nextNumber(type){
 async function newDoc(type){
   const num = await nextNumber(type);
   const ref = await addDoc(collection(db,"documents"), {
-    type, number:num, date: todayStr(), terms:"48h", dueDate: addDays(todayStr(),2),
+    type, number:num, date: todayStr(), terms: type==="invoice" ? "48h" : "30", dueDate: addDays(todayStr(), type==="invoice" ? 2 : 30),
     clientId:"", clientName:"", clientPhone:"", clientEmail:"", clientAddr:"",
     items:[{desc:"", qty:1, rate:0}], discount:{type:"amt", value:0}, taxOff:false,
     deposit:{enabled:false, value:0}, notes:"", status:"draft", sigLine:false, photos:[], createdAt: Date.now()
@@ -424,10 +424,10 @@ function renderEditor(){
   else {
     h += `<div class="card"><h3>${isInv?"Invoice":"Estimate"} ${esc(E.number)}</h3>
       <div class="rowflex"><div><label>Date</label><input type="date" id="fDate" value="${E.date||""}"></div>
-      <div><label>Payment terms</label><select id="fTerms">
+      ${isInv?`<div><label>Payment terms</label><select id="fTerms">
         ${[["receipt","Due on receipt"],["48h","48 hours"],["7","7 days"],["14","14 days"],["30","30 days"]].map(([v,l])=>`<option value="${v}" ${E.terms===v?"selected":""}>${l}</option>`).join("")}
-      </select></div></div>
-      <label>Due date</label><input type="date" id="fDue" value="${E.dueDate||""}">
+      </select></div>`:""}</div>
+      <label>${isInv?"Due date":"Valid until (quote expiry)"}</label><input type="date" id="fDue" value="${E.dueDate||""}">
       <label>Status</label><select id="fStatus">
         ${isInv
           ? [["draft","Draft"],["sent","Sent"]].map(([v,l])=>`<option value="${v}" ${E.status===v?"selected":""}>${l}</option>`).join("") + `<option disabled>Paid / Overdue — set automatically</option>`
@@ -482,7 +482,7 @@ function renderEditor(){
     const pb = $("#printBtn"); if (pb) pb.onclick = () => window.print();
     const t2 = totals({...E, id:d.id});
     const lines = (E.items||[]).filter(i=>i.desc||i.rate).map(i=>`• ${i.desc} — ${money((+i.qty||0)*(+i.rate||0))}`).join("\n");
-    const txt = `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t2.sub)}${t2.disc?`\nDiscount: −${money(t2.disc)}`:""}\nTax (${t2.rate}% HST): ${money(t2.tax)}\nTotal: ${money(t2.total)}${t2.paid?`\nPaid: ${money(t2.paid)}`:""}\nBalance due: ${money(t2.balance)}\nPayment due within 48 hours.\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}`;
+    const txt = `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t2.sub)}${t2.disc?`\nDiscount: −${money(t2.disc)}`:""}\nTax (${t2.rate}% HST): ${money(t2.tax)}\nTotal: ${money(t2.total)}${t2.paid?`\nPaid: ${money(t2.paid)}`:""}\nBalance due: ${money(t2.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}`;
     let ph = (E.clientPhone||"").replace(/\D/g,""); if (ph.length===10) ph = "1"+ph;
     const bw = $("#pWa"); if (bw) bw.onclick = () => window.open("https://wa.me/"+(ph||"")+"?text="+encodeURIComponent(txt), "_blank");
     const bs = $("#pSms"); if (bs) bs.onclick = () => { window.location.href = "sms:"+(ph? "+"+ph : "")+"?&body="+encodeURIComponent(txt); };
@@ -595,14 +595,14 @@ function bindEditor(E0, t0){
   };
   $("#mShare").onclick = async () => {
     const t = totals({...E, id:S.editId});
-    const txt = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}\nFor: ${E.clientName}\nTotal: ${money(t.total)} · Balance due: ${money(t.balance)}\nPayment due within 48 hours.\nCall/WhatsApp ${S.settings.bizPhone} · ${S.settings.bizWeb}`;
+    const txt = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}\nFor: ${E.clientName}\nTotal: ${money(t.total)} · Balance due: ${money(t.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nCall/WhatsApp ${S.settings.bizPhone} · ${S.settings.bizWeb}`;
     if (navigator.share) { try { await navigator.share({text:txt}); } catch(_){} }
     else { await navigator.clipboard.writeText(txt); alert("Summary copied — paste it into WhatsApp or email."); }
   };
   const buildSummary = () => {
     const t = totals({...E, id:S.editId});
     const lines = (E.items||[]).filter(i=>i.desc||i.rate).map(i=>`• ${i.desc} — ${money((+i.qty||0)*(+i.rate||0))}`).join("\n");
-    return { t, txt: `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t.sub)}${t.disc?`\nDiscount: −${money(t.disc)}`:""}\nTax (13% HST): ${money(t.tax)}\nTotal: ${money(t.total)}${t.paid?`\nPaid: ${money(t.paid)}`:""}\nBalance due: ${money(t.balance)}\nPayment due within 48 hours.\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}` };
+    return { t, txt: `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t.sub)}${t.disc?`\nDiscount: −${money(t.disc)}`:""}\nTax (13% HST): ${money(t.tax)}\nTotal: ${money(t.total)}${t.paid?`\nPaid: ${money(t.paid)}`:""}\nBalance due: ${money(t.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}` };
   };
   const custPhone = () => { let p = (E.clientPhone||"").replace(/\D/g,""); if (p.length===10) p = "1"+p; return p; };
   $("#mWa").onclick = () => { const {txt} = buildSummary(); const p = custPhone(); window.open("https://wa.me/"+(p||"")+"?text="+encodeURIComponent(txt), "_blank"); };
@@ -614,7 +614,7 @@ function bindEditor(E0, t0){
 
 function previewHTML(d, t){
   const st = S.settings;
-  const termsLine = d.terms==="receipt" ? "Payment due on receipt." : d.terms==="48h" ? "Payment due within 48 hours." : "Payment due within "+d.terms+" days.";
+  const termsLine = d.type==="estimate" ? "This estimate is valid until "+fmtDate(d.dueDate)+"." : d.terms==="receipt" ? "Payment due on receipt." : d.terms==="48h" ? "Payment due within 48 hours." : "Payment due within "+d.terms+" days.";
   return `<div class="no-print" style="margin-bottom:12px"><button class="btn btn-red" id="printBtn">🖨 Print / Save PDF</button>
   <div style="display:flex;gap:8px;margin-top:8px">
     <button class="btn btn-navy" id="pWa" style="margin-top:0">🟢 WhatsApp</button>
@@ -625,7 +625,7 @@ function previewHTML(d, t){
     <div class="dhead"><img src="/assets/logo.png" alt=""><div>
       <div style="font-weight:bold;color:var(--navy)">${esc(st.bizName)}</div>
       <div class="small">${esc(st.bizAddr)}<br>${esc(st.bizPhone)} · ${esc(st.bizEmail)}<br>${esc(st.bizWeb)} · ${esc(st.bizLicence)}</div>
-    </div><div style="margin-left:auto;text-align:right"><h2>${d.type}</h2><div class="small">${esc(d.number)}<br>${fmtDate(d.date)}<br>Due: ${fmtDate(d.dueDate)}</div></div></div>
+    </div><div style="margin-left:auto;text-align:right"><h2>${d.type}</h2><div class="small">${esc(d.number)}<br>${fmtDate(d.date)}<br>${d.type==="estimate" ? "Valid until: " : "Due: "}${fmtDate(d.dueDate)}</div></div></div>
     <p style="margin:14px 0 0"><strong>To:</strong> ${esc(d.clientName||"")}${d.clientAddr? "<br><span class='small'>"+esc(d.clientAddr)+"</span>":""}${d.clientPhone? "<br><span class='small'>"+esc(d.clientPhone)+"</span>":""}${d.clientEmail? "<br><span class='small'>"+esc(d.clientEmail)+"</span>":""}</p>
     <table><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr>
     ${(d.items||[]).filter(i=>i.desc||i.rate).map(i=>`<tr><td>${esc(i.desc)}</td><td class="r">${i.qty}</td><td class="r">${money(i.rate)}</td><td class="r">${money((+i.qty||0)*(+i.rate||0))}</td></tr>`).join("")}
