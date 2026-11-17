@@ -303,7 +303,7 @@
       .svc-subnote{color:var(--ink-soft);font-size:16.5px;margin:8px 0 6px}
 
       .svc-grid + .detail{margin-top:48px}
-      .detail{display:grid;grid-template-columns:320px 1fr;gap:36px;align-items:center;padding:40px 0;border-top:1px solid var(--line);scroll-margin-top:96px}
+      .detail{display:grid;grid-template-columns:320px 1fr;gap:36px;align-items:start;padding:40px 0;border-top:1px solid var(--line);scroll-margin-top:96px}
       .detail .signs{margin:16px 0 0;font-size:15.5px;color:var(--ink-soft);max-width:600px}
       .detail .signs b{color:var(--navy-ink)}
       @media (prefers-color-scheme: dark){ .detail .signs b{color:#fff} }
@@ -500,6 +500,7 @@
       .svc-lede{font-size:17.5px;color:var(--ink-soft);max-width:720px;margin:14px 0 0}
       .svc-listhead{font-size:20px;font-weight:800;color:var(--navy-ink);margin:22px 0 0}
       @media (prefers-color-scheme: dark){ .svc-listhead{color:#fff} }
+          a[href^="tel:"]{white-space:nowrap}
     </style>
   </head>
   <body>
@@ -578,7 +579,18 @@
         </div>
       </div>
 
-      <!-- ================= AREAS + OTHER SERVICES ================= -->
+      <!-- ================= OTHER SERVICES ================= -->
+        <section>
+          <div class="wrap">
+            <h2 class="svc-subhead" style="margin-top:0">Our Other Plumbing Services</h2>
+          <p class="svc-subnote">One call covers it — emergency repairs, drains, fixtures, water heaters and installs across Toronto, the GTA and Durham Region.</p>
+          <div class="areas" style="margin-top:18px">
+            <a href="/services/drain-cleaning/">Drain Cleaning</a><a href="/services/sump-pump/">Sump Pumps</a><a href="/services/water-heater/">Water Heaters</a><a href="/services/shower-bathtub/">Showers &amp; Bathtubs</a><a href="/services/toilet-repair/">Toilet Repair</a><a href="/services/faucet-sink/">Faucets &amp; Sinks</a><a href="/services/water-lines/">Water Lines</a><a href="/services/frozen-pipe-repair/">Frozen Pipe Repair</a><a href="/services/plumbing-installs/">Plumbing Installs</a><a href="/#services">All Services</a>
+          </div>
+          </div>
+        </section>
+
+        <!-- ================= AREAS ================= -->
       <section class="alt">
         <div class="wrap">
           <div class="sec-head">
@@ -588,11 +600,7 @@
           <div class="areas">
             <a href="/#plumber-toronto">Toronto</a><a href="/#plumber-scarborough">Scarborough</a><a href="/#plumber-north-york">North York</a><a href="/#plumber-etobicoke">Etobicoke</a><a href="/#also-serving">East York</a><a href="/#plumber-markham">Markham</a><a href="/#plumber-richmond-hill">Richmond Hill</a><a href="/#plumber-pickering">Pickering</a><a href="/#also-serving">Ajax</a><a href="/#also-serving">Oshawa</a><a href="/#also-serving">Mississauga</a><a href="/#also-serving">Durham Region</a>
           </div>
-          <h3 class="svc-subhead">Our Other Plumbing Services</h3>
-          <p class="svc-subnote">One call covers it — emergency repairs, drains, fixtures, water heaters and installs across Toronto, the GTA and Durham Region.</p>
-          <div class="areas" style="margin-top:18px">
-            <a href="/services/drain-cleaning/">Drain Cleaning</a><a href="/services/sump-pump/">Sump Pumps</a><a href="/services/water-heater/">Water Heaters</a><a href="/services/shower-bathtub/">Showers &amp; Bathtubs</a><a href="/services/toilet-repair/">Toilets</a><a href="/services/faucet-sink/">Faucets &amp; Sinks</a><a href="/services/water-lines/">Water Lines</a><a href="/services/frozen-pipe-repair/">Frozen Pipes</a><a href="/services/plumbing-installs/">Installs</a><a href="/#services">All Services</a>
-          </div>
+          
         </div>
       </section>
 
@@ -643,15 +651,7 @@
           </div>
           <div>
             <h4>Areas We Serve</h4>
-            <ul>
-              <li><a href="/#plumber-scarborough">Plumber in Scarborough</a></li>
-              <li><a href="/#plumber-toronto">Plumber in Toronto</a></li>
-              <li><a href="/#plumber-north-york">Plumber in North York</a></li>
-              <li><a href="/#plumber-etobicoke">Plumber in Etobicoke</a></li>
-              <li><a href="/#plumber-markham">Plumber in Markham</a></li>
-              <li><a href="/#plumber-richmond-hill">Plumber in Richmond Hill</a></li>
-              <li><a href="/#plumber-pickering">Plumber in Pickering</a></li>
-            </ul>
+            <ul><li><a href="/areas/scarborough/">Plumber in Scarborough</a></li><li><a href="/areas/toronto/">Plumber in Toronto</a></li><li><a href="/areas/north-york/">Plumber in North York</a></li><li><a href="/areas/markham/">Plumber in Markham</a></li><li><a href="/areas/etobicoke/">Plumber in Etobicoke</a></li><li><a href="/areas/east-york/">Plumber in East York</a></li><li><a href="/areas/richmond-hill/">Plumber in Richmond Hill</a></li><li><a href="/areas/pickering/">Plumber in Pickering</a></li><li><a href="/areas/ajax/">Plumber in Ajax</a></li><li><a href="/areas/oshawa/">Plumber in Oshawa</a></li><li><a href="/areas/mississauga/">Plumber in Mississauga</a></li></ul>
           </div>
           <div>
             <h4>Get in Touch</h4>
