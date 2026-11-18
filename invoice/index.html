@@ -376,13 +376,17 @@ function renderMore(){
   };
   $("#restoreFile").onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
-    if (!confirm("Restore will ADD the backup's records to your app. Continue?")) return;
+    if (!confirm("Restore will ADD the backup's records to your app. Clients already in the app are skipped. Continue?")) return;
     const data = JSON.parse(await f.text());
-    for (const c of (data.clients||[])) { const {id, ...rest} = c; await addDoc(collection(db,"clients"), rest); }
+    let added = 0, skipped = 0, failed = 0;
+    const keyOf = c => ((c.email||"").trim().toLowerCase()) || (((c.name||"").trim().toLowerCase()) + "|" + ((c.phone||"").replace(/\D/g,"")));
+    const seen = new Set(S.clients.map(keyOf));
+    for (const c of (data.clients||[])) { const {id, ...rest} = c; const k = keyOf(rest); if (seen.has(k)) { skipped++; continue; } try { await addDoc(collection(db,"clients"), rest); seen.add(k); added++; } catch(err) { failed++; } }
     for (const d of (data.documents||[])) { const {id, ...rest} = d; await addDoc(collection(db,"documents"), rest); }
     for (const x of (data.expenses||[])) { const {id, ...rest} = x; await addDoc(collection(db,"expenses"), rest); }
     for (const p of (data.payments||[])) { const {id, ...rest} = p; await addDoc(collection(db,"payments"), rest); }
-    alert("Backup restored.");
+    alert("Restore done. Clients added: " + added + (skipped ? " · already in app, skipped: " + skipped : "") + (failed ? " · failed: " + failed : ""));
+    e.target.value = "";
   };
 }
 
