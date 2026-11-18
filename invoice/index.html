@@ -332,8 +332,8 @@ function renderMore(){
     <button data-m="backup">⬇️ Backup my data (download file)</button>
     <button data-m="restore">⬆️ Restore from backup file</button>
     <button data-m="import">📥 Import an estimate / invoice (prepared file)</button>
-    <input type="file" id="restoreFile" accept=".json" class="hidden">
-    <input type="file" id="impFile" accept=".json" class="hidden">
+    <input type="file" id="restoreFile" accept=".json" style="display:block;margin:10px 0">
+    <input type="file" id="impFile" accept=".json" style="display:block;margin:10px 0">
     <div class="card"><h3>How your app is protected</h3><p class="small">Only the signed-in owner account (${esc(OWNER_EMAIL)}) can open this app or read its data. The database rules enforce the same lock. Your data syncs between your phone and computer automatically.</p></div>
   </div>`;
   main.querySelectorAll("[data-m]").forEach(b => b.onclick = async () => {
