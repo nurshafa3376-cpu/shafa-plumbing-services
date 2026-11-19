@@ -178,7 +178,7 @@ const SEED_ITEMS = [
   {name:"Water Heater Installation", price:0}, {name:"Emergency Call", price:0}
 ];
 
-let S = { settings:null, clients:[], items:[], docs:[], expenses:[], payments:[], tab:"invoices", view:"list", editId:null, editSeg:"edit", search:"" };
+let S = { settings:null, clients:[], items:[], docs:[], expenses:[], payments:[], tab:"invoices", view:"list", editId:null, editSeg:"edit", search:"", clientSearch:"", clientId:null };
 
 /* ---------- AUTH ---------- */
 function liMsg(err, ok){
@@ -267,6 +267,7 @@ function render(){
   fab.classList.toggle("hidden", !(S.view==="list" && ["invoices","estimates","expenses"].includes(S.tab)));
   if (S.view==="editor") return renderEditor();
   if (S.view==="clients") return renderClients();
+  if (S.view==="client") return renderClientDetail();
   if (S.view==="items") return renderItems();
   if (S.view==="settings") return renderSettings();
   if (S.tab==="invoices"||S.tab==="estimates") return renderDocList(S.tab==="invoices"?"invoice":"estimate");
@@ -280,12 +281,12 @@ function renderDocList(type){
   const owed = type==="invoice" ? docs.reduce((a,d)=>a+totals(d).balance,0) : docs.reduce((a,d)=>a+totals(d).total,0);
   const yr = new Date().getFullYear();
   const yrTotal = docs.filter(d=>(d.date||"").startsWith(yr)).reduce((a,d)=>a+totals(d).total,0);
-  if (S.search) { const q = S.search.toLowerCase(); docs = docs.filter(d => (d.clientName||"").toLowerCase().includes(q) || (d.number||"").toLowerCase().includes(q)); }
+  if (S.search) { const q = S.search.toLowerCase(); const qd = S.search.replace(/\D/g,""); docs = docs.filter(d => (d.clientName||"").toLowerCase().includes(q) || (d.number||"").toLowerCase().includes(q) || (qd.length>=3 && (d.clientPhone||"").replace(/\D/g,"").includes(qd))); }
   docs.sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.number||"").localeCompare(a.number||""));
   if (type==="invoice") docs.sort((a,b)=> (docStatus(a)==="Overdue"?0:1) - (docStatus(b)==="Overdue"?0:1) || (b.date||"").localeCompare(a.date||""));
   const years = [...new Set(docs.map(d=>(d.date||yr+"").slice(0,4)))];
   let h = `<div class="summary"><div><div class="lbl">${type==="invoice"?"Owed to you":"Open estimates"}</div><div class="big">${money(owed)}</div></div><div style="text-align:right"><div class="lbl">${yr} total</div><div style="font-weight:bold">${money(yrTotal)}</div></div></div>`;
-  h += `<div class="searchrow"><input id="q" placeholder="Search name or number" value="${esc(S.search)}"></div>`;
+  h += `<div class="searchrow"><input id="q" placeholder="Search name, phone or number" value="${esc(S.search)}"></div>`;
   if (!docs.length) h += `<div class="card" style="text-align:center;padding:30px"><p>No ${type}s yet.</p><p class="small">Tap the red + button to make your first one.</p></div>`;
   for (const y of years){
     const yd = docs.filter(d=>(d.date||"").slice(0,4)===y);
@@ -410,6 +411,16 @@ async function newDoc(type){
     deposit:{enabled:false, value:0}, notes:"", status:"draft", sigLine:false, photos:[], createdAt: Date.now()
   });
   S.editId = ref.id; S.view="editor"; S.editSeg="edit";
+}
+async function newDocForClient(type, c){
+  const num = await nextNumber(type);
+  const ref = await addDoc(collection(db,"documents"), {
+    type, number:num, date: todayStr(), terms: type==="invoice" ? "48h" : "30", dueDate: addDays(todayStr(), type==="invoice" ? 2 : 30),
+    clientId: c.id, clientName: c.name||"", clientPhone: c.phone||"", clientEmail: c.email||"", clientAddr: clientAddr(c),
+    items:[{desc:"", qty:1, rate:0}], discount:{type:"amt", value:0}, taxOff:false,
+    deposit:{enabled:false, value:0}, notes:"", status:"draft", sigLine:false, photos:[], createdAt: Date.now()
+  });
+  S.editId = ref.id; S.view="editor"; S.editSeg="edit"; render();
 }
 function curDoc(){ return S.docs.find(d=>d.id===S.editId); }
 
@@ -674,16 +685,57 @@ function bindHistory(d){
 }
 
 /* ---------- CLIENTS / ITEMS / SETTINGS / EXPENSES ---------- */
+function clientAddr(c){ return c.address || c.addr || ""; }
 function renderClients(){
-  let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button><div class="card"><h3>Add a client</h3>
+  const q = (S.clientSearch||"").toLowerCase(), qd = (S.clientSearch||"").replace(/\D/g,"");
+  const match = c => !q || (c.name||"").toLowerCase().includes(q) || (c.email||"").toLowerCase().includes(q) || (c.address||"").toLowerCase().includes(q) || (c.addr||"").toLowerCase().includes(q) || (qd.length>=3 && (c.phone||"").replace(/\D/g,"").includes(qd));
+  let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button>
+  <div class="searchrow"><input id="cq" placeholder="Search name, phone, email or address" value="${esc(S.clientSearch)}"></div>
+  <div class="card"><h3>Add a client</h3>
   <label>Name</label><input id="cName"><label>Phone</label><input id="cPhone"><label>Email</label><input id="cEmail"><label>Address</label><input id="cAddr">
   <button class="btn btn-navy" id="cAdd">Add Client</button></div>`;
-  for (const c of [...S.clients].sort((a,b)=>(a.name||"").localeCompare(b.name||"")))
-    h += `<div class="docrow"><div><div class="nm">${esc(c.name)}</div><div class="sub">${esc(c.phone||"")} ${esc(c.address||"")}</div></div><button class="del" style="width:42px;padding:9px 0;background:#FDECEC;border:1px solid #F3B8B8;border-radius:9px;color:#8B0000;font-weight:bold" data-cdel="${c.id}">✕</button></div>`;
+  const list = [...S.clients].filter(match).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  if (!list.length) h += `<div class="card" style="text-align:center;padding:24px"><p>${S.clientSearch ? "No clients match your search." : "No clients yet."}</p></div>`;
+  for (const c of list)
+    h += `<div class="docrow"><div data-copen="${c.id}" style="flex:1;cursor:pointer"><div class="nm">${esc(c.name)}</div><div class="sub">${esc(c.phone||"")} ${esc(clientAddr(c))}</div></div><button class="del" style="width:42px;padding:9px 0;background:#FDECEC;border:1px solid #F3B8B8;border-radius:9px;color:#8B0000;font-weight:bold" data-cdel="${c.id}">✕</button></div>`;
   main.innerHTML = h;
   $("#backBtn").onclick = () => { S.view="list"; render(); };
+  const cq = $("#cq"); if (cq) cq.oninput = e => { S.clientSearch = e.target.value; renderClients(); const nq=$("#cq"); nq.focus(); nq.setSelectionRange(nq.value.length,nq.value.length); };
   $("#cAdd").onclick = async () => { const n = $("#cName").value.trim(); if (!n) return alert("Enter a name."); await addDoc(collection(db,"clients"), {name:n, phone:$("#cPhone").value, email:$("#cEmail").value, address:$("#cAddr").value}); };
+  main.querySelectorAll("[data-copen]").forEach(el => el.onclick = () => { S.clientId = el.dataset.copen; S.view="client"; render(); });
   main.querySelectorAll("[data-cdel]").forEach(b => b.onclick = async () => { if (confirm("Delete this client?")) await deleteDoc(doc(db,"clients", b.dataset.cdel)); });
+}
+function renderClientDetail(){
+  const c = S.clients.find(x=>x.id===S.clientId);
+  if (!c) { S.view="clients"; return renderClients(); }
+  const digits = (c.phone||"").replace(/\D/g,"");
+  let wa = digits; if (wa.length===10) wa = "1"+wa;
+  let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back to Clients</button>
+  <div class="card"><h3>${esc(c.name||"Client")}</h3>
+    ${clientAddr(c)?`<p style="margin:6px 0">${esc(clientAddr(c))}</p>`:""}
+    ${c.phone?`<p style="margin:6px 0">📞 <a href="tel:${esc(digits)}">${esc(c.phone)}</a></p>`:""}
+    ${c.email?`<p style="margin:6px 0">✉️ ${esc(c.email)}</p>`:""}
+    <div style="display:flex;gap:8px;margin-top:10px">
+      ${c.phone?`<a class="btn btn-navy" style="flex:1;width:auto;margin-top:0;text-align:center;text-decoration:none" href="tel:${esc(digits)}">📞 Call</a>`:""}
+      ${digits?`<a class="btn btn-navy" style="flex:1;width:auto;margin-top:0;text-align:center;text-decoration:none" href="https://wa.me/${wa}" target="_blank">💬 WhatsApp</a>`:""}
+    </div>
+    <button class="btn btn-red" id="cNewInv">＋ New Invoice</button>
+    <button class="btn btn-ghost" id="cNewEst">＋ New Estimate</button>
+  </div>
+  <div class="yearhead"><span>History</span></div>`;
+  const nameLc = (c.name||"").toLowerCase();
+  const docs = S.docs.filter(d => d.clientId===c.id || (!d.clientId && nameLc && (d.clientName||"").toLowerCase()===nameLc));
+  docs.sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.number||"").localeCompare(a.number||""));
+  if (!docs.length) h += `<div class="card" style="text-align:center;padding:24px"><p>No invoices or estimates yet.</p></div>`;
+  for (const d of docs){
+    const t = totals(d), st = docStatus(d);
+    h += `<div class="docrow" data-open="${d.id}"><div><div class="nm">${esc(d.number||"")}</div><div class="sub">${d.type==="invoice"?"Invoice":"Estimate"} · ${fmtDate(d.date)}</div><span class="badge ${badgeCls(st)}">${st}</span></div><div class="amt">${money(t.total)}${t.balance>0&&t.balance<t.total?`<div class="sub" style="color:var(--red)">Bal ${money(t.balance)}</div>`:""}</div></div>`;
+  }
+  main.innerHTML = h;
+  $("#backBtn").onclick = () => { S.view="clients"; render(); };
+  $("#cNewInv").onclick = () => newDocForClient("invoice", c);
+  $("#cNewEst").onclick = () => newDocForClient("estimate", c);
+  main.querySelectorAll("[data-open]").forEach(el => el.onclick = () => { const dd = S.docs.find(x=>x.id===el.dataset.open); if (dd) S.tab = dd.type==="invoice" ? "invoices" : "estimates"; S.editId = el.dataset.open; S.view="editor"; S.editSeg="edit"; render(); });
 }
 function renderItems(){
   let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button><div class="card"><h3>Add a service</h3>
