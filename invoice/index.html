@@ -284,9 +284,16 @@ function renderDocList(type){
   if (S.search) { const q = S.search.toLowerCase(); const qd = S.search.replace(/\D/g,""); docs = docs.filter(d => (d.clientName||"").toLowerCase().includes(q) || (d.number||"").toLowerCase().includes(q) || (qd.length>=3 && (d.clientPhone||"").replace(/\D/g,"").includes(qd))); }
   docs.sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.number||"").localeCompare(a.number||""));
   if (type==="invoice") docs.sort((a,b)=> (docStatus(a)==="Overdue"?0:1) - (docStatus(b)==="Overdue"?0:1) || (b.date||"").localeCompare(a.date||""));
+  const custMatches = S.search ? S.clients.filter(c => clientMatches(c, S.search)).sort((a,b)=>(a.name||"").localeCompare(b.name||"")) : [];
   const years = [...new Set(docs.map(d=>(d.date||yr+"").slice(0,4)))];
   let h = `<div class="summary"><div><div class="lbl">${type==="invoice"?"Owed to you":"Open estimates"}</div><div class="big">${money(owed)}</div></div><div style="text-align:right"><div class="lbl">${yr} total</div><div style="font-weight:bold">${money(yrTotal)}</div></div></div>`;
   h += `<div class="searchrow"><input id="q" placeholder="Search name, phone or number" value="${esc(S.search)}"></div>`;
+  if (custMatches.length){
+    h += `<div class="yearhead"><span>Customers</span><span></span></div>`;
+    for (const c of custMatches.slice(0,10))
+      h += `<div class="docrow"><div data-copen="${c.id}" style="flex:1;cursor:pointer"><div class="nm">${esc(c.name)}</div><div class="sub">${esc(c.phone||"")} ${esc(clientAddr(c))}</div></div></div>`;
+    if (custMatches.length>10) h += `<div style="text-align:center;padding:8px"><span class="small">…and ${custMatches.length-10} more — search in More → Clients</span></div>`;
+  }
   if (!docs.length) h += `<div class="card" style="text-align:center;padding:30px"><p>No ${type}s yet.</p><p class="small">Tap the red + button to make your first one.</p></div>`;
   for (const y of years){
     const yd = docs.filter(d=>(d.date||"").slice(0,4)===y);
@@ -299,6 +306,7 @@ function renderDocList(type){
   main.innerHTML = h;
   $("#q").oninput = e => { S.search = e.target.value; renderDocList(type); const q=$("#q"); q.focus(); q.setSelectionRange(q.value.length,q.value.length); };
   main.querySelectorAll("[data-open]").forEach(el => el.onclick = () => { S.editId = el.dataset.open; S.view="editor"; S.editSeg="edit"; render(); });
+  wireClientOpen();
 }
 
 function renderExpenses(){
@@ -686,9 +694,16 @@ function bindHistory(d){
 
 /* ---------- CLIENTS / ITEMS / SETTINGS / EXPENSES ---------- */
 function clientAddr(c){ return c.address || c.addr || ""; }
+function clientMatches(c, query){
+  const q = (query||"").toLowerCase(), qd = (query||"").replace(/\D/g,"");
+  if (!q) return false;
+  return (c.name||"").toLowerCase().includes(q) || (c.email||"").toLowerCase().includes(q) || (c.address||"").toLowerCase().includes(q) || (c.addr||"").toLowerCase().includes(q) || (qd.length>=3 && (c.phone||"").replace(/\D/g,"").includes(qd));
+}
+function wireClientOpen(){
+  main.querySelectorAll("[data-copen]").forEach(el => el.onclick = () => { S.clientId = el.dataset.copen; S.view="client"; render(); });
+}
 function renderClients(){
-  const q = (S.clientSearch||"").toLowerCase(), qd = (S.clientSearch||"").replace(/\D/g,"");
-  const match = c => !q || (c.name||"").toLowerCase().includes(q) || (c.email||"").toLowerCase().includes(q) || (c.address||"").toLowerCase().includes(q) || (c.addr||"").toLowerCase().includes(q) || (qd.length>=3 && (c.phone||"").replace(/\D/g,"").includes(qd));
+  const match = c => !S.clientSearch || clientMatches(c, S.clientSearch);
   let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button>
   <div class="searchrow"><input id="cq" placeholder="Search name, phone, email or address" value="${esc(S.clientSearch)}"></div>
   <div class="card"><h3>Add a client</h3>
@@ -702,7 +717,7 @@ function renderClients(){
   $("#backBtn").onclick = () => { S.view="list"; render(); };
   const cq = $("#cq"); if (cq) cq.oninput = e => { S.clientSearch = e.target.value; renderClients(); const nq=$("#cq"); nq.focus(); nq.setSelectionRange(nq.value.length,nq.value.length); };
   $("#cAdd").onclick = async () => { const n = $("#cName").value.trim(); if (!n) return alert("Enter a name."); await addDoc(collection(db,"clients"), {name:n, phone:$("#cPhone").value, email:$("#cEmail").value, address:$("#cAddr").value}); };
-  main.querySelectorAll("[data-copen]").forEach(el => el.onclick = () => { S.clientId = el.dataset.copen; S.view="client"; render(); });
+  wireClientOpen();
   main.querySelectorAll("[data-cdel]").forEach(b => b.onclick = async () => { if (confirm("Delete this client?")) await deleteDoc(doc(db,"clients", b.dataset.cdel)); });
 }
 function renderClientDetail(){
