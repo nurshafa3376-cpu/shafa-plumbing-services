@@ -251,6 +251,52 @@ function docStatus(d){
 }
 const badgeCls = s => ({"Open":"b-open","Closed":"b-closed","Draft":"b-draft","Sent":"b-sent","Paid":"b-paid","Overdue":"b-overdue"}[s]||"b-draft");
 
+/* ---------- SMART HELPERS (reviews, price memory) ---------- */
+const REVIEW_LINK = "https://g.page/r/CdxyuRv3Ga37EAI/review";
+function waNum(phone){ let p = (phone||"").replace(/\D/g,""); if (p.length===10) p = "1"+p; return p; }
+function askReview(name, phone){
+  const p = waNum(phone);
+  const msg = `Hi ${name||"there"}, thank you for choosing ${S.settings.bizName}! If you were happy with our work, we'd really appreciate a quick Google review — it helps our small business a lot:\n${REVIEW_LINK}`;
+  if (p) window.open("https://wa.me/"+p+"?text="+encodeURIComponent(msg), "_blank");
+  else { if (navigator.clipboard) navigator.clipboard.writeText(REVIEW_LINK).catch(()=>{}); alert("No phone number saved for this client, so WhatsApp can't open. The review link is:\n"+REVIEW_LINK+"\n(It has been copied — paste it into a text or email.)"); }
+}
+function priceMap(){
+  const m = new Map();
+  const put = (desc, rate) => { const d = (desc||"").trim(); if (d && (+rate||0)>0) m.set(d.toLowerCase(), {desc:d, rate:+rate}); };
+  const jobs = [];
+  for (const c of S.clients) for (const j of (c.sqHistory||[])) jobs.push(j);
+  jobs.sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  for (const j of jobs) put(j.desc, j.amount);
+  const docs = [...S.docs].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  for (const d of docs) for (const i of (d.items||[])) put(i.desc, i.rate);
+  for (const i of S.items) put(i.name, i.price);
+  return m;
+}
+let sugInput = null, sugMatches = [];
+function hideSug(){ const s = $("#descSug"); if (s) s.classList.add("hidden"); }
+function showSug(inp){
+  const sug = $("#descSug"); if (!sug) return;
+  const q = (inp.value||"").trim().toLowerCase();
+  if (q.length < 2) { hideSug(); return; }
+  sugMatches = [...priceMap().values()].filter(x => x.desc.toLowerCase().includes(q)).slice(-8).reverse();
+  if (!sugMatches.length) { hideSug(); return; }
+  sugInput = inp;
+  const r = inp.getBoundingClientRect();
+  sug.style.left = (r.left + window.scrollX) + "px";
+  sug.style.top = (r.bottom + window.scrollY + 2) + "px";
+  sug.style.width = r.width + "px";
+  sug.innerHTML = sugMatches.map((x,ix)=>`<div data-sug="${ix}" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line)"><strong>${esc(x.desc)}</strong><span style="float:right;font-weight:bold">${money(x.rate)}</span><div class="small">last price used</div></div>`).join("");
+  sug.classList.remove("hidden");
+  sug.querySelectorAll("[data-sug]").forEach(el => el.onmousedown = ev => {
+    ev.preventDefault();
+    const pick = sugMatches[+el.dataset.sug]; if (!pick || !sugInput) return;
+    const ix = +sugInput.dataset.ix;
+    E.items[ix].desc = pick.desc; E.items[ix].rate = pick.rate;
+    hideSug(); drawItemRows(); refreshTotals();
+  });
+}
+document.addEventListener("click", e => { const s = $("#descSug"); if (s && !s.contains(e.target) && !(e.target.dataset && e.target.dataset.f==="desc")) s.classList.add("hidden"); });
+
 /* ---------- LIST VIEWS ---------- */
 const main = $("#main"), fab = $("#fab");
 document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; S.view="list"; render(); });
@@ -268,6 +314,8 @@ function render(){
   if (S.view==="editor") return renderEditor();
   if (S.view==="clients") return renderClients();
   if (S.view==="client") return renderClientDetail();
+  if (S.view==="owed") return renderOwed();
+  if (S.view==="tankdue") return renderTankDue();
   if (S.view==="items") return renderItems();
   if (S.view==="settings") return renderSettings();
   if (S.tab==="invoices"||S.tab==="estimates") return renderDocList(S.tab==="invoices"?"invoice":"estimate");
@@ -279,6 +327,7 @@ function render(){
 function renderDocList(type){
   let docs = S.docs.filter(d=>d.type===type);
   const owed = type==="invoice" ? docs.reduce((a,d)=>a+totals(d).balance,0) : docs.reduce((a,d)=>a+totals(d).total,0);
+  const overdueN = type==="invoice" ? docs.filter(d=>docStatus(d)==="Overdue").length : 0;
   const yr = new Date().getFullYear();
   const yrTotal = docs.filter(d=>(d.date||"").startsWith(yr)).reduce((a,d)=>a+totals(d).total,0);
   if (S.search) { const q = S.search.toLowerCase(); const qd = S.search.replace(/\D/g,""); docs = docs.filter(d => (d.clientName||"").toLowerCase().includes(q) || (d.number||"").toLowerCase().includes(q) || (qd.length>=3 && (d.clientPhone||"").replace(/\D/g,"").includes(qd))); }
@@ -286,7 +335,9 @@ function renderDocList(type){
   if (type==="invoice") docs.sort((a,b)=> (docStatus(a)==="Overdue"?0:1) - (docStatus(b)==="Overdue"?0:1) || (b.date||"").localeCompare(a.date||""));
   const custMatches = S.search ? S.clients.filter(c => clientMatches(c, S.search)).sort((a,b)=>(a.name||"").localeCompare(b.name||"")) : [];
   const years = [...new Set(docs.map(d=>(d.date||yr+"").slice(0,4)))];
-  let h = `<div class="summary"><div><div class="lbl">${type==="invoice"?"Owed to you":"Open estimates"}</div><div class="big">${money(owed)}</div></div><div style="text-align:right"><div class="lbl">${yr} total</div><div style="font-weight:bold">${money(yrTotal)}</div></div></div>`;
+  let h = type==="invoice"
+    ? `<div class="summary" id="owedCard" style="cursor:pointer"><div><div class="lbl">Owed to you</div><div class="big">${money(owed)}</div><div class="small" style="margin-top:3px">${overdueN} overdue · tap to see who owes you →</div></div><div style="text-align:right"><div class="lbl">${yr} total</div><div style="font-weight:bold">${money(yrTotal)}</div></div></div>`
+    : `<div class="summary"><div><div class="lbl">Open estimates</div><div class="big">${money(owed)}</div></div><div style="text-align:right"><div class="lbl">${yr} total</div><div style="font-weight:bold">${money(yrTotal)}</div></div></div>`;
   h += `<div class="searchrow"><input id="q" placeholder="Search name, phone or number" value="${esc(S.search)}"></div>`;
   if (custMatches.length){
     h += `<div class="yearhead"><span>Customers</span><span></span></div>`;
@@ -306,7 +357,73 @@ function renderDocList(type){
   main.innerHTML = h;
   $("#q").oninput = e => { S.search = e.target.value; renderDocList(type); const q=$("#q"); q.focus(); q.setSelectionRange(q.value.length,q.value.length); };
   main.querySelectorAll("[data-open]").forEach(el => el.onclick = () => { S.editId = el.dataset.open; S.view="editor"; S.editSeg="edit"; render(); });
+  const oc = $("#owedCard"); if (oc) oc.onclick = () => { S.view="owed"; render(); };
   wireClientOpen();
+}
+
+function renderOwed(){
+  const invs = S.docs.filter(d=>d.type==="invoice").map(d=>({d, t:totals(d)})).filter(x=>x.t.balance>0);
+  invs.sort((a,b)=> (docStatus(a.d)==="Overdue"?0:1) - (docStatus(b.d)==="Overdue"?0:1) || (a.d.dueDate||"").localeCompare(b.d.dueDate||""));
+  const total = invs.reduce((a,x)=>a+x.t.balance,0);
+  let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back to Invoices</button>
+  <div class="summary"><div><div class="lbl">Total owed to you</div><div class="big">${money(total)}</div></div><div style="text-align:right"><div class="lbl">Invoices owing</div><div style="font-weight:bold">${invs.length}</div></div></div>`;
+  if (!invs.length) h += `<div class="card" style="text-align:center;padding:24px"><p>Nobody owes you anything right now. 🎉</p></div>`;
+  const groups = new Map();
+  for (const x of invs){
+    const key = x.d.clientId || (x.d.clientName||"").toLowerCase();
+    if (!groups.has(key)) groups.set(key, {name:x.d.clientName||"No client", phone:x.d.clientPhone||"", rows:[]});
+    const g = groups.get(key); g.rows.push(x); if (!g.phone && x.d.clientPhone) g.phone = x.d.clientPhone;
+  }
+  for (const g of groups.values()){
+    const gbal = g.rows.reduce((a,x)=>a+x.t.balance,0);
+    h += `<div class="yearhead"><span>${esc(g.name)}</span><span>${money(gbal)}</span></div>`;
+    for (const x of g.rows){
+      const st = docStatus(x.d);
+      const phone = x.d.clientPhone || g.phone || (S.clients.find(c=>c.id===x.d.clientId)||{}).phone || "";
+      h += `<div class="docrow"><div style="flex:1"><div class="nm">${esc(x.d.number||"")}</div><div class="sub">${fmtDate(x.d.date)} · due ${fmtDate(x.d.dueDate)}</div><span class="badge ${badgeCls(st)}">${st}</span></div><div style="text-align:right"><div class="amt">${money(x.t.balance)}</div>${phone?`<button data-remind="${x.d.id}" style="margin-top:6px;padding:7px 10px;background:#fff;border:1px solid #2E7D32;border-radius:8px;color:#2E7D32;font-weight:bold;font-size:12.5px">💬 Remind</button>`:""}</div></div>`;
+    }
+  }
+  main.innerHTML = h;
+  $("#backBtn").onclick = () => { S.view="list"; S.tab="invoices"; render(); };
+  main.querySelectorAll("[data-remind]").forEach(b => b.onclick = () => {
+    const d = S.docs.find(x=>x.id===b.dataset.remind); if (!d) return;
+    const t = totals(d);
+    const cl = S.clients.find(c=>c.id===d.clientId);
+    const p = waNum(d.clientPhone || (cl ? cl.phone : ""));
+    if (!p) return;
+    const msg = `Hi ${d.clientName||"there"}, a friendly reminder from ${S.settings.bizName}: invoice ${d.number} has a balance of ${money(t.balance)} outstanding. We accept cash, debit, credit cards and e-transfer. If you've already paid, please ignore this message. Questions? Call/WhatsApp ${S.settings.bizPhone}. Thank you!`;
+    window.open("https://wa.me/"+p+"?text="+encodeURIComponent(msg), "_blank");
+  });
+}
+
+function renderTankDue(){
+  const KW = ["tank","water heater","flush","t&p","relief valve","anode"];
+  const isTank = s => { const v = (s||"").toLowerCase(); return KW.some(k=>v.includes(k)); };
+  const today = new Date(todayStr()+"T12:00:00");
+  const rows = [];
+  for (const c of S.clients){
+    let last = "";
+    const nameLc = (c.name||"").toLowerCase();
+    for (const d of S.docs){
+      if (d.clientId===c.id || (!d.clientId && nameLc && (d.clientName||"").toLowerCase()===nameLc))
+        if ((d.items||[]).some(i=>isTank(i.desc)) && (d.date||"")>last) last = d.date;
+    }
+    for (const j of (c.sqHistory||[])) if (isTank(j.desc) && (j.date||"")>last) last = j.date;
+    if (!last) continue;
+    const age = Math.round((today - new Date(last+"T12:00:00"))/86400000);
+    if (age>=335 && age<=730) rows.push({c, last, age});
+  }
+  rows.sort((a,b)=> b.age - a.age);
+  let h = `<button class="btn-ghost btn" style="width:auto;padding:9px 16px;margin:0 0 12px" id="backBtn">← Back</button>
+  <div class="yearhead"><span>Due for tank service</span><span>${rows.length} customer${rows.length===1?"":"s"}</span></div>`;
+  if (!rows.length) h += `<div class="card" style="text-align:center;padding:24px"><p>Nobody due yet.</p><p class="small">Customers appear here about 11 months after a tank or water-heater service job.</p></div>`;
+  for (const r of rows){
+    const digits = (r.c.phone||"").replace(/\D/g,"");
+    let wa = digits; if (wa.length===10) wa = "1"+wa;
+    h += `<div class="docrow"><div style="flex:1"><div class="nm">${esc(r.c.name||"")}</div><div class="sub">Last tank service: ${fmtDate(r.last)} · ${r.age} days ago</div></div><div style="display:flex;gap:6px">${r.c.phone?`<a class="btn btn-navy" style="width:auto;margin-top:0;padding:10px 12px;text-align:center;text-decoration:none" href="tel:${esc(digits)}">📞 Call</a>`:""}${digits?`<a class="btn btn-navy" style="width:auto;margin-top:0;padding:10px 12px;text-align:center;text-decoration:none" href="https://wa.me/${wa}" target="_blank">💬 WhatsApp</a>`:""}</div></div>`;
+  }
+  main.innerHTML = h;
+  $("#backBtn").onclick = () => { S.view="list"; render(); };
 }
 
 function renderExpenses(){
@@ -342,6 +459,7 @@ function renderMore(){
     <button data-m="restore">⬆️ Restore from backup file</button>
     <button data-m="import">📥 Import an estimate / invoice (prepared file)</button>
     <button data-m="history">📥 Import Square job history (prepared file)</button>
+    <button data-m="tankdue">🔧 Due for tank service</button>
     <input type="file" id="restoreFile" accept=".json" style="display:block;margin:10px 0">
     <input type="file" id="impFile" accept=".json" style="display:block;margin:10px 0">
     <input type="file" id="histFile" accept=".json" style="display:block;margin:10px 0">
@@ -351,6 +469,7 @@ function renderMore(){
     const m = b.dataset.m;
     if (m==="clients"){ S.view="clients"; render(); }
     if (m==="items"){ S.view="items"; render(); }
+    if (m==="tankdue"){ S.view="tankdue"; render(); }
     if (m==="settings"){ S.view="settings"; render(); }
     if (m==="backup"){
       const data = {settings:S.settings, clients:S.clients, items:S.items, documents:S.docs, expenses:S.expenses, payments:S.payments};
@@ -467,6 +586,22 @@ async function newDocForClient(type, c){
   S.editId = ref.id; S.view="editor"; S.editSeg="edit"; render();
 }
 function curDoc(){ return S.docs.find(d=>d.id===S.editId); }
+async function copyDocToInvoice(d){
+  const {id, ...data} = d;
+  const num = await nextNumber("invoice");
+  const ref = await addDoc(collection(db,"documents"), {...data, type:"invoice", number:num, status:"draft", date: todayStr(), terms:"48h", dueDate: addDays(todayStr(),2), createdAt: Date.now()});
+  S.tab = "invoices"; S.editId = ref.id; S.view="editor"; S.editSeg="edit"; E = null; render();
+}
+async function newInvoiceFromSqJob(c, j){
+  const num = await nextNumber("invoice");
+  const ref = await addDoc(collection(db,"documents"), {
+    type:"invoice", number:num, date: todayStr(), terms:"48h", dueDate: addDays(todayStr(),2),
+    clientId: c.id, clientName: c.name||"", clientPhone: c.phone||"", clientEmail: c.email||"", clientAddr: clientAddr(c),
+    items:[{desc: j.desc||"", qty:1, rate: +j.amount||0}], discount:{type:"amt", value:0}, taxOff:true,
+    deposit:{enabled:false, value:0}, notes:"", status:"draft", sigLine:false, photos:[], createdAt: Date.now()
+  });
+  S.tab = "invoices"; S.editId = ref.id; S.view="editor"; S.editSeg="edit"; E = null; render();
+}
 
 function renderEditor(){
   const d = curDoc();
@@ -503,6 +638,7 @@ function renderEditor(){
       <label>Service address</label><input id="fClientAddr" value="${esc(E.clientAddr||"")}" placeholder="Address">
     </div>
     <div class="card"><h3>Items</h3><div id="itemRows"></div>
+      <div id="descSug" class="hidden" style="position:absolute;z-index:50;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:250px;overflow:auto"></div>
       <button class="btn btn-navy" id="addItem" style="margin-top:6px">+ Add Item</button>
       <label>…or quick-pick a saved service</label><select id="quickPick"><option value="">Choose a service…</option>${S.items.map(i=>`<option value="${i.id}">${esc(i.name)} — ${money(i.price)}</option>`).join("")}</select>
     </div>
@@ -527,6 +663,7 @@ function renderEditor(){
     <button class="btn btn-red" id="saveBtn">Save ${isInv?"Invoice":"Estimate"}</button>
     <div class="menu-list" style="margin-top:14px">
       ${!isInv?`<button id="mMakeInv">🧾 Make Invoice from this estimate</button>`:""}
+      ${isInv && t.balance<=0 && t.total>0 ? `<button id="mReview">⭐ Ask for a Google review</button>` : ""}
       <button id="mDup">📄 Duplicate</button>
       <button id="mShare">🔗 Share summary</button>
       <button id="mWa">🟢 Send by WhatsApp</button>
@@ -565,11 +702,11 @@ function totalsHTML(t){
 function drawItemRows(){
   const wrap = $("#itemRows"); if (!wrap) return;
   wrap.innerHTML = E.items.map((i,ix)=>`<div class="itemrow">
-    <input class="d" data-ix="${ix}" data-f="desc" value="${esc(i.desc)}" placeholder="Description">
+    <input class="d" data-ix="${ix}" data-f="desc" value="${esc(i.desc)}" placeholder="Description" autocomplete="off">
     <input class="q" data-ix="${ix}" data-f="qty" type="number" step="0.01" min="0" value="${i.qty}">
     <input class="r" data-ix="${ix}" data-f="rate" type="number" step="0.01" min="0" value="${i.rate}">
     <button class="del" data-del="${ix}">✕</button></div>`).join("");
-  wrap.querySelectorAll("input").forEach(inp => inp.oninput = () => { const ix=+inp.dataset.ix, f=inp.dataset.f; E.items[ix][f] = f==="desc"? inp.value : (+inp.value||0); refreshTotals(); });
+  wrap.querySelectorAll("input").forEach(inp => { inp.oninput = () => { const ix=+inp.dataset.ix, f=inp.dataset.f; E.items[ix][f] = f==="desc"? inp.value : (+inp.value||0); refreshTotals(); if (f==="desc") showSug(inp); }; if (inp.dataset.f==="desc") inp.onfocus = () => showSug(inp); });
   wrap.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { E.items.splice(+b.dataset.del,1); if(!E.items.length) E.items=[{desc:"",qty:1,rate:0}]; drawItemRows(); refreshTotals(); });
 }
 function refreshTotals(){ const tb = $("#totalsBox"); if (tb) tb.innerHTML = totalsHTML(totals({...E, id:S.editId})); }
@@ -654,6 +791,7 @@ function bindEditor(E0, t0){
     const ref = await addDoc(collection(db,"documents"), {...data, number:num, status: E.type==="invoice"?"draft":"open", createdAt: Date.now()});
     S.editId = ref.id; E=null; renderEditor();
   };
+  const mr = $("#mReview"); if (mr) mr.onclick = () => askReview(E.clientName, E.clientPhone);
   $("#mShare").onclick = async () => {
     const t = totals({...E, id:S.editId});
     const txt = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}\nFor: ${E.clientName}\nTotal: ${money(t.total)} · Balance due: ${money(t.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nCall/WhatsApp ${S.settings.bizPhone} · ${S.settings.bizWeb}`;
@@ -770,6 +908,7 @@ function renderClientDetail(){
       ${c.phone?`<a class="btn btn-navy" style="flex:1;width:auto;margin-top:0;text-align:center;text-decoration:none" href="tel:${esc(digits)}">📞 Call</a>`:""}
       ${digits?`<a class="btn btn-navy" style="flex:1;width:auto;margin-top:0;text-align:center;text-decoration:none" href="https://wa.me/${wa}" target="_blank">💬 WhatsApp</a>`:""}
     </div>
+    <button class="btn btn-gold" id="cReview">⭐ Ask for a Google review</button>
     <button class="btn btn-red" id="cNewInv">＋ New Invoice</button>
     <button class="btn btn-ghost" id="cNewEst">＋ New Estimate</button>
   </div>
@@ -780,18 +919,22 @@ function renderClientDetail(){
   if (!docs.length) h += `<div class="card" style="text-align:center;padding:24px"><p>No invoices or estimates yet.</p></div>`;
   for (const d of docs){
     const t = totals(d), st = docStatus(d);
-    h += `<div class="docrow" data-open="${d.id}"><div><div class="nm">${esc(d.number||"")}</div><div class="sub">${d.type==="invoice"?"Invoice":"Estimate"} · ${fmtDate(d.date)}</div><span class="badge ${badgeCls(st)}">${st}</span></div><div class="amt">${money(t.total)}${t.balance>0&&t.balance<t.total?`<div class="sub" style="color:var(--red)">Bal ${money(t.balance)}</div>`:""}</div></div>`;
+    h += `<div class="docrow" data-open="${d.id}"><div style="flex:1"><div class="nm">${esc(d.number||"")}</div><div class="sub">${d.type==="invoice"?"Invoice":"Estimate"} · ${fmtDate(d.date)}</div><span class="badge ${badgeCls(st)}">${st}</span></div><div style="text-align:right"><div class="amt">${money(t.total)}${t.balance>0&&t.balance<t.total?`<div class="sub" style="color:var(--red)">Bal ${money(t.balance)}</div>`:""}</div><button data-copy="${d.id}" style="margin-top:6px;padding:7px 10px;background:#fff;border:1px solid var(--navy);border-radius:8px;color:var(--navy);font-weight:bold;font-size:12.5px">🧾 New invoice from this</button></div></div>`;
   }
   const sq = (Array.isArray(c.sqHistory) ? [...c.sqHistory] : []).sort((a,b)=> (b.date||"").localeCompare(a.date||""));
   if (sq.length){
     h += `<div class="yearhead"><span>Past jobs (from Square)</span><span>${sq.length} job${sq.length===1?"":"s"}</span></div>`;
-    for (const j of sq)
-      h += `<div class="docrow"><div><div class="nm" style="font-size:15px">${esc(j.desc||"")}</div><div class="sub">${fmtDate(j.date)}</div></div><div class="amt">${money(j.amount)}</div></div>`;
+    sq.forEach((j,ix) => {
+      h += `<div class="docrow"><div style="flex:1"><div class="nm" style="font-size:15px">${esc(j.desc||"")}</div><div class="sub">${fmtDate(j.date)}</div></div><div style="text-align:right"><div class="amt">${money(j.amount)}</div><button data-sqmake="${ix}" style="margin-top:6px;padding:7px 10px;background:#fff;border:1px solid var(--navy);border-radius:8px;color:var(--navy);font-weight:bold;font-size:12.5px">🧾 Make invoice</button></div></div>`;
+    });
   }
   main.innerHTML = h;
   $("#backBtn").onclick = () => { S.view="clients"; render(); };
   $("#cNewInv").onclick = () => newDocForClient("invoice", c);
   $("#cNewEst").onclick = () => newDocForClient("estimate", c);
+  $("#cReview").onclick = () => askReview(c.name, c.phone);
+  main.querySelectorAll("[data-copy]").forEach(b => b.onclick = e => { e.stopPropagation(); const dd = S.docs.find(x=>x.id===b.dataset.copy); if (dd) copyDocToInvoice(dd); });
+  main.querySelectorAll("[data-sqmake]").forEach(b => b.onclick = () => { const j = sq[+b.dataset.sqmake]; if (j) newInvoiceFromSqJob(c, j); });
   main.querySelectorAll("[data-open]").forEach(el => el.onclick = () => { const dd = S.docs.find(x=>x.id===el.dataset.open); if (dd) S.tab = dd.type==="invoice" ? "invoices" : "estimates"; S.editId = el.dataset.open; S.view="editor"; S.editSeg="edit"; render(); });
 }
 function renderItems(){
