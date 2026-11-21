@@ -341,8 +341,10 @@ function renderMore(){
     <button data-m="backup">⬇️ Backup my data (download file)</button>
     <button data-m="restore">⬆️ Restore from backup file</button>
     <button data-m="import">📥 Import an estimate / invoice (prepared file)</button>
+    <button data-m="history">📥 Import Square job history (prepared file)</button>
     <input type="file" id="restoreFile" accept=".json" style="display:block;margin:10px 0">
     <input type="file" id="impFile" accept=".json" style="display:block;margin:10px 0">
+    <input type="file" id="histFile" accept=".json" style="display:block;margin:10px 0">
     <div class="card"><h3>How your app is protected</h3><p class="small">Only the signed-in owner account (${esc(OWNER_EMAIL)}) can open this app or read its data. The database rules enforce the same lock. Your data syncs between your phone and computer automatically.</p></div>
   </div>`;
   main.querySelectorAll("[data-m]").forEach(b => b.onclick = async () => {
@@ -356,6 +358,7 @@ function renderMore(){
     }
     if (m==="restore"){ const rf = $("#restoreFile"); if (rf.files && rf.files.length) { doRestore(rf.files[0]); } else { rf.click(); } }
     if (m==="import"){ $("#impFile").click(); }
+    if (m==="history"){ const hf = $("#histFile"); if (hf.files && hf.files.length) { doHistoryImport(hf.files[0]); } else { hf.click(); } }
   });
   $("#impFile").onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
@@ -399,6 +402,39 @@ function renderMore(){
     $("#restoreFile").value = "";
   }
   $("#restoreFile").onchange = e => { const f = e.target.files[0]; if (f) doRestore(f); };
+  async function doHistoryImport(f){
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (data.kind !== "shafa-history-import" || !Array.isArray(data.entries)) { alert("This file is not a Shafa Square history import."); return; }
+      const norm = s => String(s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+      const digits = s => { const d = String(s||"").replace(/\D/g,""); return d.length>=10 ? d.slice(-10) : d; };
+      let matched = 0, unmatched = 0, added = 0, dupes = 0; const missed = [];
+      for (const e of data.entries) {
+        const ids = e.squareIds || (e.squareId ? [e.squareId] : []);
+        let client = S.clients.find(c => c.sqId && ids.includes(c.sqId));
+        if (!client && e.name && digits(e.phone)) client = S.clients.find(c => norm(c.name)===norm(e.name) && digits(c.phone) && digits(c.phone)===digits(e.phone));
+        if (!client && e.name && e.email) client = S.clients.find(c => norm(c.name)===norm(e.name) && (c.email||"").toLowerCase()===(e.email||"").toLowerCase());
+        if (!client && e.email) { const m = S.clients.filter(c => (c.email||"").toLowerCase()===(e.email||"").toLowerCase()); if (m.length===1) client = m[0]; }
+        if (!client && digits(e.phone)) { const m = S.clients.filter(c => digits(c.phone) && digits(c.phone)===digits(e.phone)); if (m.length===1) client = m[0]; }
+        if (!client) { unmatched++; if (e.name) missed.push(e.name); continue; }
+        matched++;
+        const cur = Array.isArray(client.sqHistory) ? [...client.sqHistory] : [];
+        const keyOf = j => (j.date||"")+"|"+(+j.amount||0)+"|"+(j.desc||"");
+        const seen = new Set(cur.map(keyOf));
+        let changed = false;
+        for (const j of (e.jobs||[])) {
+          const job = {date: j.date||"", desc: j.desc||"", amount: +j.amount||0};
+          if (seen.has(keyOf(job))) { dupes++; continue; }
+          seen.add(keyOf(job)); cur.push(job); added++; changed = true;
+        }
+        if (changed) { cur.sort((a,b)=>(a.date||"").localeCompare(b.date||"")); await updateDoc(doc(db,"clients", client.id), {sqHistory: cur}); client.sqHistory = cur; }
+      }
+      alert("Square history import done.\nCustomers matched: " + matched + "\nJobs added: " + added + (dupes ? "\nAlready there, skipped: " + dupes : "") + "\nNot matched: " + unmatched + (missed.length ? "\nNo match for: " + missed.slice(0,5).join(", ") + (missed.length>5 ? "…" : "") : ""));
+    } catch(err) { alert("History import failed: " + err.message); }
+    $("#histFile").value = "";
+  }
+  $("#histFile").onchange = e => { const f = e.target.files[0]; if (f) doHistoryImport(f); };
 }
 
 /* ---------- DOCUMENT EDITOR ---------- */
@@ -745,6 +781,12 @@ function renderClientDetail(){
   for (const d of docs){
     const t = totals(d), st = docStatus(d);
     h += `<div class="docrow" data-open="${d.id}"><div><div class="nm">${esc(d.number||"")}</div><div class="sub">${d.type==="invoice"?"Invoice":"Estimate"} · ${fmtDate(d.date)}</div><span class="badge ${badgeCls(st)}">${st}</span></div><div class="amt">${money(t.total)}${t.balance>0&&t.balance<t.total?`<div class="sub" style="color:var(--red)">Bal ${money(t.balance)}</div>`:""}</div></div>`;
+  }
+  const sq = (Array.isArray(c.sqHistory) ? [...c.sqHistory] : []).sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+  if (sq.length){
+    h += `<div class="yearhead"><span>Past jobs (from Square)</span><span>${sq.length} job${sq.length===1?"":"s"}</span></div>`;
+    for (const j of sq)
+      h += `<div class="docrow"><div><div class="nm" style="font-size:15px">${esc(j.desc||"")}</div><div class="sub">${fmtDate(j.date)}</div></div><div class="amt">${money(j.amount)}</div></div>`;
   }
   main.innerHTML = h;
   $("#backBtn").onclick = () => { S.view="clients"; render(); };
