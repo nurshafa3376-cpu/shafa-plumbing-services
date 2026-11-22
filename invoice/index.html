@@ -151,6 +151,17 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+/* ---------- DIRECT EMAIL SEND — CONFIG ----------
+   "Send by Email" can send DIRECTLY from this app through a small
+   Google Apps Script relay that runs under the owner's own Google
+   account (see direct-email/DEPLOY-STEPS.md and apps-script.gs).
+   After that relay is deployed, paste its web-app URL and the shared
+   secret token here. While the URL/token below are still placeholders,
+   directSendReady() is false and "Send by Email" keeps the OLD
+   behaviour (opens your own mail app) — nothing breaks. */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxyFTS0bTealC7aqjgbuwjTDP80f8XIiDcn0LWvkqLJUkt3MhHi7_9hvY9Q_C9-bWUjKg/exec";
+const APPS_SCRIPT_TOKEN = "809ca534992975b1f69ab5d4abf0847b57b4cb750b9391a5";
+
 const $ = s => document.querySelector(s);
 const money = n => "$" + (Math.round((+n||0)*100)/100).toLocaleString("en-CA",{minimumFractionDigits:2, maximumFractionDigits:2});
 const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -250,6 +261,67 @@ function docStatus(d){
   return d.status==="sent" ? "Sent" : "Draft";
 }
 const badgeCls = s => ({"Open":"b-open","Closed":"b-closed","Draft":"b-draft","Sent":"b-sent","Paid":"b-paid","Overdue":"b-overdue"}[s]||"b-draft");
+
+/* ---------- DIRECT EMAIL SEND (Apps Script relay) ---------- */
+function directSendReady(){
+  return /^https:\/\/script\.google\.com\//.test(APPS_SCRIPT_URL||"")
+    && !!APPS_SCRIPT_TOKEN && APPS_SCRIPT_TOKEN !== "809ca534992975b1f69ab5d4abf0847b57b4cb750b9391a5";
+}
+function docEmailPayload(){
+  const d = E, st = S.settings, t = totals({...E, id:S.editId});
+  const items = (d.items||[]).filter(i=>i.desc||i.rate)
+    .map(i=>({desc:i.desc||"", qty:+i.qty||0, rate:+i.rate||0, amount:(+i.qty||0)*(+i.rate||0)}));
+  return {
+    token: APPS_SCRIPT_TOKEN,
+    to: (d.clientEmail||"").trim(),
+    subject: `${st.bizName} — ${d.type==="invoice"?"Invoice":"Estimate"} ${d.number}`,
+    docType: d.type, number: d.number, date: d.date||"", dueDate: d.dueDate||"", terms: d.terms||"",
+    clientName: d.clientName||"", clientAddr: d.clientAddr||"", clientPhone: d.clientPhone||"", clientEmail: d.clientEmail||"",
+    items,
+    subtotal: t.sub, discount: t.disc, taxRate: t.rate, tax: t.tax, total: t.total, paid: t.paid, balance: t.balance,
+    deposit: (d.deposit && d.deposit.enabled) ? (+d.deposit.value||0) : 0,
+    notes: d.notes||"", payLine: st.payLine||"", guarantee: st.guarantee||"",
+    bizName: st.bizName||"", bizAddr: st.bizAddr||"", bizPhone: st.bizPhone||"",
+    bizEmail: st.bizEmail||"", bizWeb: st.bizWeb||"", bizLicence: st.bizLicence||""
+  };
+}
+/* Sends the current document by email through the relay. On ANY failure
+   (or when the relay is not configured yet) it falls back to the old
+   behaviour via mailtoFallback() — opening the owner's mail app. */
+async function sendDocEmail(btn, mailtoFallback){
+  if (!directSendReady()) { mailtoFallback(); return; }
+  if (!E.clientEmail || !/^\S+@\S+\.\S+$/.test(E.clientEmail.trim())) {
+    alert("Add the client's email address first (in the Client section), then tap Send by Email again.");
+    return;
+  }
+  const oldLabel = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Sending…"; }
+  try {
+    // text/plain keeps this a CORS "simple request" (no preflight) —
+    // Apps Script web apps cannot answer an OPTIONS preflight.
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify(docEmailPayload())
+    });
+    const data = JSON.parse(await res.text());
+    if (!data || data.ok !== true) throw new Error((data && data.error) || "send_failed");
+    // Record the send on the document itself.
+    const patch = { sentAt: Date.now(), sentTo: E.clientEmail };
+    if (E.type==="invoice" && E.status==="draft") {
+      patch.status = "sent"; E.status = "sent";
+      const fs = $("#fStatus"); if (fs) fs.value = "sent";
+    }
+    E.sentAt = patch.sentAt; E.sentTo = patch.sentTo;
+    await updateDoc(doc(db,"documents", S.editId), patch);
+    if (btn) btn.textContent = "✅ Sent by email";
+    alert("Email sent to " + E.clientEmail + " — the " + (E.type==="invoice"?"invoice":"estimate") + " is attached as a PDF.");
+  } catch(err) {
+    if (btn) { btn.disabled = false; btn.textContent = oldLabel; }
+    alert("Direct send didn't go through — opening your email app instead, like before.");
+    mailtoFallback();
+  }
+}
 
 /* ---------- SMART HELPERS (reviews, price memory) ---------- */
 const REVIEW_LINK = "https://g.page/r/CdxyuRv3Ga37EAI/review";
@@ -684,7 +756,7 @@ function renderEditor(){
     let ph = (E.clientPhone||"").replace(/\D/g,""); if (ph.length===10) ph = "1"+ph;
     const bw = $("#pWa"); if (bw) bw.onclick = () => window.open("https://wa.me/"+(ph||"")+"?text="+encodeURIComponent(txt), "_blank");
     const bs = $("#pSms"); if (bs) bs.onclick = () => { window.location.href = "sms:"+(ph? "+"+ph : "")+"?&body="+encodeURIComponent(txt); };
-    const be = $("#pEmail"); if (be) be.onclick = () => { window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(`${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`)+"&body="+encodeURIComponent(txt); };
+    const be = $("#pEmail"); if (be) be.onclick = ev => { sendDocEmail(ev.currentTarget, () => { window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(`${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`)+"&body="+encodeURIComponent(txt); }); };
     return;
   }
   if (S.editSeg==="history"){ bindHistory(E); return; }
@@ -806,7 +878,7 @@ function bindEditor(E0, t0){
   const custPhone = () => { let p = (E.clientPhone||"").replace(/\D/g,""); if (p.length===10) p = "1"+p; return p; };
   $("#mWa").onclick = () => { const {txt} = buildSummary(); const p = custPhone(); window.open("https://wa.me/"+(p||"")+"?text="+encodeURIComponent(txt), "_blank"); };
   $("#mSms").onclick = () => { const {txt} = buildSummary(); const p = custPhone(); window.location.href = "sms:"+(p? "+"+p : "")+"?&body="+encodeURIComponent(txt); };
-  $("#mEmail").onclick = () => { const {txt} = buildSummary(); const subj = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`; window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(txt); };
+  $("#mEmail").onclick = ev => { const {txt} = buildSummary(); const subj = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`; sendDocEmail(ev.currentTarget, () => { window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(txt); }); };
   $("#mPrint").onclick = () => { S.editSeg="preview"; renderEditor(); setTimeout(()=>window.print(), 150); };
   $("#mDel").onclick = async () => { if (!confirm("Delete this "+E.type+"? This cannot be undone.")) return; await deleteDoc(doc(db,"documents", S.editId)); S.view="list"; E=null; render(); };
 }
