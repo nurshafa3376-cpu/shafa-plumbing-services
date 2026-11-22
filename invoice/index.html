@@ -265,7 +265,7 @@ const badgeCls = s => ({"Open":"b-open","Closed":"b-closed","Draft":"b-draft","S
 /* ---------- DIRECT EMAIL SEND (Apps Script relay) ---------- */
 function directSendReady(){
   return /^https:\/\/script\.google\.com\//.test(APPS_SCRIPT_URL||"")
-    && !!APPS_SCRIPT_TOKEN && APPS_SCRIPT_TOKEN !== "809ca534992975b1f69ab5d4abf0847b57b4cb750b9391a5";
+    && !!APPS_SCRIPT_TOKEN && APPS_SCRIPT_TOKEN !== "TOKEN_NOT_SET";
 }
 function docEmailPayload(){
   const d = E, st = S.settings, t = totals({...E, id:S.editId});
