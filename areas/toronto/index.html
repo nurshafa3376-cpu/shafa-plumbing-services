@@ -609,8 +609,63 @@
       .photo-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:28px}
       @media (max-width:860px){ .photo-strip{gap:16px} }
       @media (max-width:620px){ .photo-strip{grid-template-columns:1fr;gap:14px} }
+    
+      /* ---------- FAQ (draft, added 2026-11-23) ---------- */
+      .faq-list{max-width:820px}
+      .faq-item{margin:0 0 20px}
+      .faq-item h3{font-size:18.5px;font-weight:800;color:var(--navy-ink);margin:0 0 6px}
+      .faq-item p{margin:0;color:var(--ink-soft);font-size:16.5px}
+      @media (prefers-color-scheme: dark){ .faq-item h3{color:#fff} }
     </style>
-  </head>
+      <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Which Toronto neighbourhoods do you serve?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Across the city — Downtown Core, Liberty Village, The Annex, Leslieville, Riverdale, The Beaches, Danforth, High Park, Midtown and more. If you are in Toronto, we can help."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does a plumber in Toronto cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We find the cause first and confirm your price before any work begins. Drain snaking and leak repair start from $77."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can Toronto homeowners get the basement flooding subsidy?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — the City of Toronto subsidy covers 80% of the invoiced cost, up to $6,650 per property, for work like a backwater valve or sump pump. We install the work and give you the paperwork for your claim."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are you open on weekends in Toronto?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — 7 days a week, 7am–9pm. Book online or call 647-710-3376."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are you licensed and insured?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — Licence P34765, insured, and our work is covered by a 1-year warranty."
+      }
+    }
+  ]
+}
+    </script>
+</head>
   <body>
 
 <header>
@@ -697,6 +752,18 @@
       </section>
 
       <!-- ================= WHY CHOOSE US ================= -->
+            <section>
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>More Toronto Neighbourhoods We Serve</h2>
+            <p>Beyond downtown, we serve homes and condos across the east end, the west end and midtown — including these neighbourhoods.</p>
+          </div>
+          <div class="areas">
+            <span>The Beaches</span><span>Danforth</span><span>High Park</span><span>The Junction</span><span>Roncesvalles</span><span>Parkdale</span><span>Leaside</span><span>Forest Hill</span><span>Rosedale</span><span>Cabbagetown</span>
+          </div>
+        </div>
+      </section>
+
       <section>
         <div class="wrap">
           <div class="sec-head">
@@ -745,6 +812,55 @@
       </section>
 
 <!-- ================= BOOKING ================= -->
+            <section>
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>Current Offers for Toronto Homes</h2>
+          </div>
+          <ul class="why-list">
+            <li><strong>Drain snaking &amp; leak repair from $77</strong> — confirmed price before any work begins.</li>
+            <li><strong>$149 Winter Special</strong> — water heater flush &amp; safety check, plus a free leak check of your taps and toilets. Book by December 15.</li>
+            <li><strong>10% OFF labour</strong> on every job until December 31, 2026.</li>
+          </ul>
+          <p><a href="/offers/">See all current offers</a></p>
+          <div class="sec-head">
+            <h2>Basement Flooding? The City May Help Pay</h2>
+          </div>
+          <p>Many Toronto homes qualify for the City of Toronto Basement Flooding Protection Subsidy, which helps cover the cost of a backwater valve, sump pump and other flood-protection work — up to $6,650 per property across eligible items. We install the work and give you the paperwork you need for your claim.</p>
+          <p><a href="/services/basement-flooding-subsidy/">See how the flooding subsidy works</a></p>
+        </div>
+      </section>
+
+            <section id="faq">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div class="faq-list">
+            <div class="faq-item">
+              <h3>Which Toronto neighbourhoods do you serve?</h3>
+              <p>Across the city — Downtown Core, Liberty Village, The Annex, Leslieville, Riverdale, The Beaches, Danforth, High Park, Midtown and more. If you are in Toronto, we can help.</p>
+            </div>
+            <div class="faq-item">
+              <h3>How much does a plumber in Toronto cost?</h3>
+              <p>We find the cause first and confirm your price before any work begins. Drain snaking and leak repair start from $77.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Can Toronto homeowners get the basement flooding subsidy?</h3>
+              <p>Yes — the City of Toronto subsidy covers 80% of the invoiced cost, up to $6,650 per property, for work like a backwater valve or sump pump. We install the work and give you the paperwork for your claim.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Are you open on weekends in Toronto?</h3>
+              <p>Yes — 7 days a week, 7am–9pm. Book online or call 647-710-3376.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Are you licensed and insured?</h3>
+              <p>Yes — Licence P34765, insured, and our work is covered by a 1-year warranty.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="book" id="book">
         <div class="wrap">
           <h2>Book a Plumber — Shafa Plumbing Services</h2>
