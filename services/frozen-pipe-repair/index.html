@@ -501,8 +501,63 @@
       .svc-listhead{font-size:20px;font-weight:800;color:var(--navy-ink);margin:22px 0 0}
       @media (prefers-color-scheme: dark){ .svc-listhead{color:#fff} }
           a[href^="tel:"]{white-space:nowrap}
+    
+      /* ---------- FAQ (draft, added 2026-11-23) ---------- */
+      .faq-list{max-width:820px}
+      .faq-item{margin:0 0 20px}
+      .faq-item h3{font-size:18.5px;font-weight:800;color:var(--navy-ink);margin:0 0 6px}
+      .faq-item p{margin:0;color:var(--ink-soft);font-size:16.5px}
+      @media (prefers-color-scheme: dark){ .faq-item h3{color:#fff} }
     </style>
-  </head>
+      <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What should I do if a pipe freezes?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "If a pipe has burst, turn off your main water shut-off valve and call us at 647-710-3376. Never use an open flame to thaw a pipe."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can a frozen pipe burst?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Ice expands as it freezes and can split the pipe — and the leak often only shows once the pipe thaws. Frozen pipes should be checked quickly."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How can I stop pipes from freezing?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Keep the heat on, insulate pipes in cold spots like garages and crawl spaces, and let faucets drip a little on very cold nights."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are you available during cold snaps?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — we are open 7 days a week, 7am–9pm, all winter. Call 647-710-3376 or book online."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does frozen pipe repair cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We find the damage first and confirm your price before any work begins — no surprises."
+      }
+    }
+  ]
+}
+    </script>
+</head>
   <body>
 
 <header>
@@ -603,6 +658,36 @@
       </section>
 
       <!-- ================= BOOKING ================= -->
+            <section id="faq">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div class="faq-list">
+            <div class="faq-item">
+              <h3>What should I do if a pipe freezes?</h3>
+              <p>If a pipe has burst, turn off your main water shut-off valve and call us at 647-710-3376. Never use an open flame to thaw a pipe.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Can a frozen pipe burst?</h3>
+              <p>Yes. Ice expands as it freezes and can split the pipe — and the leak often only shows once the pipe thaws. Frozen pipes should be checked quickly.</p>
+            </div>
+            <div class="faq-item">
+              <h3>How can I stop pipes from freezing?</h3>
+              <p>Keep the heat on, insulate pipes in cold spots like garages and crawl spaces, and let faucets drip a little on very cold nights.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Are you available during cold snaps?</h3>
+              <p>Yes — we are open 7 days a week, 7am–9pm, all winter. Call 647-710-3376 or book online.</p>
+            </div>
+            <div class="faq-item">
+              <h3>How much does frozen pipe repair cost?</h3>
+              <p>We find the damage first and confirm your price before any work begins — no surprises.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="book" id="book">
         <div class="wrap">
           <h2>Book a Plumber — Shafa Plumbing Services</h2>
