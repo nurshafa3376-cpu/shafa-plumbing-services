@@ -501,8 +501,63 @@
       .svc-listhead{font-size:20px;font-weight:800;color:var(--navy-ink);margin:22px 0 0}
       @media (prefers-color-scheme: dark){ .svc-listhead{color:#fff} }
           a[href^="tel:"]{white-space:nowrap}
+    
+      /* ---------- FAQ (draft, added 2026-11-23) ---------- */
+      .faq-list{max-width:820px}
+      .faq-item{margin:0 0 20px}
+      .faq-item h3{font-size:18.5px;font-weight:800;color:var(--navy-ink);margin:0 0 6px}
+      .faq-item p{margin:0;color:var(--ink-soft);font-size:16.5px}
+      @media (prefers-color-scheme: dark){ .faq-item h3{color:#fff} }
     </style>
-  </head>
+      <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What counts as a plumbing emergency?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A burst pipe, a serious leak, flooding, no water, or a sewer backup. If water is going where it should not, treat it as an emergency and call right away."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What should I do while I wait for the plumber?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "If you can do it safely, turn off your home’s main water shut-off valve to limit the damage, then call us at 647-710-3376."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How fast can you get here?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We are open 7 days a week, 7am–9pm. Call 647-710-3376 and we will book you into the earliest time available."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does an emergency visit cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We find the cause first and confirm your price before any work begins — no surprises and no open-ended billing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is emergency work covered by a warranty?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — our work is covered by a 1-year warranty, and we are licensed (Licence P34765) and insured."
+      }
+    }
+  ]
+}
+    </script>
+</head>
   <body>
 
 <header>
@@ -605,6 +660,36 @@
       </section>
 
       <!-- ================= BOOKING ================= -->
+            <section id="faq">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div class="faq-list">
+            <div class="faq-item">
+              <h3>What counts as a plumbing emergency?</h3>
+              <p>A burst pipe, a serious leak, flooding, no water, or a sewer backup. If water is going where it should not, treat it as an emergency and call right away.</p>
+            </div>
+            <div class="faq-item">
+              <h3>What should I do while I wait for the plumber?</h3>
+              <p>If you can do it safely, turn off your home&rsquo;s main water shut-off valve to limit the damage, then call us at 647-710-3376.</p>
+            </div>
+            <div class="faq-item">
+              <h3>How fast can you get here?</h3>
+              <p>We are open 7 days a week, 7am–9pm. Call 647-710-3376 and we will book you into the earliest time available.</p>
+            </div>
+            <div class="faq-item">
+              <h3>How much does an emergency visit cost?</h3>
+              <p>We find the cause first and confirm your price before any work begins — no surprises and no open-ended billing.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Is emergency work covered by a warranty?</h3>
+              <p>Yes — our work is covered by a 1-year warranty, and we are licensed (Licence P34765) and insured.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="book" id="book">
         <div class="wrap">
           <h2>Book a Plumber — Shafa Plumbing Services</h2>
