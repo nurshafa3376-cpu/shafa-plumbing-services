@@ -609,8 +609,63 @@
       .photo-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:28px}
       @media (max-width:860px){ .photo-strip{gap:16px} }
       @media (max-width:620px){ .photo-strip{grid-template-columns:1fr;gap:14px} }
+    
+      /* ---------- FAQ (draft, added 2026-11-23) ---------- */
+      .faq-list{max-width:820px}
+      .faq-item{margin:0 0 20px}
+      .faq-item h3{font-size:18.5px;font-weight:800;color:var(--navy-ink);margin:0 0 6px}
+      .faq-item p{margin:0;color:var(--ink-soft);font-size:16.5px}
+      @media (prefers-color-scheme: dark){ .faq-item h3{color:#fff} }
     </style>
-  </head>
+      <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Which North York neighbourhoods do you serve?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Willowdale, Don Mills, Bayview Village, York Mills, Flemingdon Park, Downsview, Lawrence Heights and the rest of North York — houses and condos."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does a plumber in North York cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We find the cause first and confirm your price before any work begins. Drain snaking and leak repair start from $77."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can North York homeowners get the basement flooding subsidy?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — North York is part of the City of Toronto, so the Basement Flooding Protection Subsidy applies here: 80% of the invoiced cost, up to $6,650 per property. We install the work and give you the paperwork for your claim."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do you work in North York condos?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — we work in houses and condos across North York, including older condo buildings with Kitec plumbing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are you licensed and insured?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — Licence P34765, insured, and our work is covered by a 1-year warranty."
+      }
+    }
+  ]
+}
+    </script>
+</head>
   <body>
 
 <header>
@@ -678,6 +733,26 @@
 
       
       <!-- ================= WHY CHOOSE US ================= -->
+            <section>
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>North York Neighbourhoods We Serve</h2>
+            <p>We serve homes and condos right across North York, from Willowdale and Don Mills to Downsview and Lawrence Heights. Find your neighbourhood below, along with the plumbing work that comes up most often in homes like yours.</p>
+          </div>
+          <div class="areas">
+            <span>Willowdale</span><span>Don Mills</span><span>Bayview Village</span><span>York Mills</span><span>Flemingdon Park</span><span>Downsview</span><span>Lawrence Heights</span><span>Bathurst Heights</span><span>Humber Summit</span><span>Yorkdale&ndash;Glen Park</span>
+          </div>
+          <h3 class="svc-listhead">Common jobs we do in North York</h3>
+          <ul>
+            <li><span class="tick">✓</span> Toilet and faucet repairs in houses and condos</li>
+            <li><span class="tick">✓</span> Drain cleaning and clogged drains</li>
+            <li><span class="tick">✓</span> Water heater repair and replacement</li>
+            <li><span class="tick">✓</span> Sump pumps and battery backups</li>
+            <li><span class="tick">✓</span> Kitec pipe checks in older condos</li>
+          </ul>
+        </div>
+      </section>
+
       <section>
         <div class="wrap">
           <div class="sec-head">
@@ -726,6 +801,55 @@
       </section>
 
 <!-- ================= BOOKING ================= -->
+            <section>
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>Current Offers for North York Homes</h2>
+          </div>
+          <ul class="why-list">
+            <li><strong>Drain snaking &amp; leak repair from $77</strong> — confirmed price before any work begins.</li>
+            <li><strong>$149 Winter Special</strong> — water heater flush &amp; safety check, plus a free leak check of your taps and toilets. Book by December 15.</li>
+            <li><strong>10% OFF labour</strong> on every job until December 31, 2026.</li>
+          </ul>
+          <p><a href="/offers/">See all current offers</a></p>
+          <div class="sec-head">
+            <h2>Basement Flooding? The City May Help Pay</h2>
+          </div>
+          <p>Many North York homes qualify for the City of Toronto Basement Flooding Protection Subsidy, which helps cover the cost of a backwater valve, sump pump and other flood-protection work — up to $6,650 per property across eligible items. We install the work and give you the paperwork you need for your claim.</p>
+          <p><a href="/services/basement-flooding-subsidy/">See how the flooding subsidy works</a></p>
+        </div>
+      </section>
+
+            <section id="faq">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div class="faq-list">
+            <div class="faq-item">
+              <h3>Which North York neighbourhoods do you serve?</h3>
+              <p>Willowdale, Don Mills, Bayview Village, York Mills, Flemingdon Park, Downsview, Lawrence Heights and the rest of North York — houses and condos.</p>
+            </div>
+            <div class="faq-item">
+              <h3>How much does a plumber in North York cost?</h3>
+              <p>We find the cause first and confirm your price before any work begins. Drain snaking and leak repair start from $77.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Can North York homeowners get the basement flooding subsidy?</h3>
+              <p>Yes — North York is part of the City of Toronto, so the Basement Flooding Protection Subsidy applies here: 80% of the invoiced cost, up to $6,650 per property. We install the work and give you the paperwork for your claim.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Do you work in North York condos?</h3>
+              <p>Yes — we work in houses and condos across North York, including older condo buildings with Kitec plumbing.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Are you licensed and insured?</h3>
+              <p>Yes — Licence P34765, insured, and our work is covered by a 1-year warranty.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="book" id="book">
         <div class="wrap">
           <h2>Book a Plumber — Shafa Plumbing Services</h2>
