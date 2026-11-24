@@ -515,8 +515,76 @@
         .sticky-bar a:active{background:var(--navy-deep)}
       }
 
+      /* ---------- Book in 3 steps strip ---------- */
+      .book-steps{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0 6px}
+      .bstep{flex:1;min-width:180px;display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:14px 16px;color:#fff;font-weight:700;font-size:16px}
+      .bstep .bnum{flex:none;width:34px;height:34px;border-radius:50%;background:var(--gold);color:var(--navy-ink);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:17px}
+      .bstep a{color:#fff;text-decoration:underline}
+    
+      /* ---------- FAQ (draft, added 2026-11-23) ---------- */
+      .faq-list{max-width:820px}
+      .faq-item{margin:0 0 20px}
+      .faq-item h3{font-size:18.5px;font-weight:800;color:var(--navy-ink);margin:0 0 6px}
+      .faq-item p{margin:0;color:var(--ink-soft);font-size:16.5px}
+      @media (prefers-color-scheme: dark){ .faq-item h3{color:#fff} }
     </style>
-  </head>
+      <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How much does a plumber cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Every job is different, so we find the cause first and confirm your price before any work begins — no surprises, no open-ended billing. Drain snaking and leak repair start from $77."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are you open on weekends?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — we are open 7 days a week, 7am–9pm. Call, text or book online any day."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are you licensed and insured?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Shafa Plumbing Services is licensed (Licence P34765) and insured, and our work is covered by a 1-year warranty."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I book a plumber?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Book online and pick a real free time — no account needed — or call or text 647-710-3376. We take bookings 7 days a week, 7am–9pm."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which areas do you serve?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Toronto, Scarborough, North York, Etobicoke, East York, Markham, Richmond Hill, Pickering, Ajax, Oshawa and the rest of the GTA and Durham Region."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What payment methods do you accept?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We accept all types of payment — cash, debit, credit cards and e-transfer."
+      }
+    }
+  ]
+}
+    </script>
+</head>
   <body>
 
     <div class="promo"><strong>10% OFF your plumbing service</strong> <span>— labour only, not parts · until Dec 31, 2026</span></div>
@@ -1031,10 +1099,49 @@
       </section>
 
       <!-- ================= BOOKING ================= -->
+            <section id="faq">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div class="faq-list">
+            <div class="faq-item">
+              <h3>How much does a plumber cost?</h3>
+              <p>Every job is different, so we find the cause first and confirm your price before any work begins — no surprises, no open-ended billing. Drain snaking and leak repair start from $77.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Are you open on weekends?</h3>
+              <p>Yes — we are open 7 days a week, 7am–9pm. Call, text or book online any day.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Are you licensed and insured?</h3>
+              <p>Yes. Shafa Plumbing Services is licensed (Licence P34765) and insured, and our work is covered by a 1-year warranty.</p>
+            </div>
+            <div class="faq-item">
+              <h3>How do I book a plumber?</h3>
+              <p>Book online and pick a real free time — no account needed — or call or text 647-710-3376. We take bookings 7 days a week, 7am–9pm.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Which areas do you serve?</h3>
+              <p>Toronto, Scarborough, North York, Etobicoke, East York, Markham, Richmond Hill, Pickering, Ajax, Oshawa and the rest of the GTA and Durham Region.</p>
+            </div>
+            <div class="faq-item">
+              <h3>What payment methods do you accept?</h3>
+              <p>We accept all types of payment — cash, debit, credit cards and e-transfer.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="book" id="book">
         <div class="wrap">
           <h2>Book a Plumber — Shafa Plumbing Services</h2>
           <p>Book online through our Google Calendar booking page: pick a real free time, 7 days a week, 7am–9pm. Your time is reserved on our calendar straight away.</p>
+          <div class="book-steps" aria-label="How booking works">
+            <div class="bstep"><span class="bnum">1</span><span>Pick your service</span></div>
+            <div class="bstep"><span class="bnum">2</span><span><a href="https://calendar.app.google/yhCL8njJjsXbvZDFA" target="_blank" rel="noopener">Pick your time</a></span></div>
+            <div class="bstep"><span class="bnum">3</span><span>You&rsquo;re booked</span></div>
+          </div>
           <div class="book-grid">
             <div class="book-card">
               <h3>Online Booking</h3>
