@@ -609,8 +609,63 @@
       .photo-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:28px}
       @media (max-width:860px){ .photo-strip{gap:16px} }
       @media (max-width:620px){ .photo-strip{grid-template-columns:1fr;gap:14px} }
+    
+      /* ---------- FAQ (draft, added 2026-11-23) ---------- */
+      .faq-list{max-width:820px}
+      .faq-item{margin:0 0 20px}
+      .faq-item h3{font-size:18.5px;font-weight:800;color:var(--navy-ink);margin:0 0 6px}
+      .faq-item p{margin:0;color:var(--ink-soft);font-size:16.5px}
+      @media (prefers-color-scheme: dark){ .faq-item h3{color:#fff} }
     </style>
-  </head>
+      <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Do you serve all of Scarborough?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — we are based in Scarborough and serve every part of it, from Malvern and Agincourt to West Hill and the Bluffs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does a plumber in Scarborough cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We find the cause first and confirm your price before any work begins. Drain snaking and leak repair start from $77."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can Scarborough homeowners get the flooding subsidy?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — Scarborough is part of the City of Toronto, so the Basement Flooding Protection Subsidy applies here: 80% of the invoiced cost, up to $6,650 per property. We install the work and give you the paperwork for your claim."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are you open on weekends in Scarborough?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — 7 days a week, 7am–9pm. Book online or call 647-710-3376."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are you licensed and insured?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — Licence P34765, insured, and our work is covered by a 1-year warranty."
+      }
+    }
+  ]
+}
+    </script>
+</head>
   <body>
 
 <header>
@@ -746,6 +801,36 @@
       </section>
 
 <!-- ================= BOOKING ================= -->
+            <section id="faq">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div class="faq-list">
+            <div class="faq-item">
+              <h3>Do you serve all of Scarborough?</h3>
+              <p>Yes — we are based in Scarborough and serve every part of it, from Malvern and Agincourt to West Hill and the Bluffs.</p>
+            </div>
+            <div class="faq-item">
+              <h3>How much does a plumber in Scarborough cost?</h3>
+              <p>We find the cause first and confirm your price before any work begins. Drain snaking and leak repair start from $77.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Can Scarborough homeowners get the flooding subsidy?</h3>
+              <p>Yes — Scarborough is part of the City of Toronto, so the Basement Flooding Protection Subsidy applies here: 80% of the invoiced cost, up to $6,650 per property. We install the work and give you the paperwork for your claim.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Are you open on weekends in Scarborough?</h3>
+              <p>Yes — 7 days a week, 7am–9pm. Book online or call 647-710-3376.</p>
+            </div>
+            <div class="faq-item">
+              <h3>Are you licensed and insured?</h3>
+              <p>Yes — Licence P34765, insured, and our work is covered by a 1-year warranty.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="book" id="book">
         <div class="wrap">
           <h2>Book a Plumber — Shafa Plumbing Services</h2>
