@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Your document — Shafa Plumbing Services</title>
+<style>
+  :root{ --navy:#01375B; --ink:#1e3a50; --mut:#3a5069; --line:#d7e0e7; --red:#C8102E; }
+  *{ box-sizing:border-box; }
+  body{ font-family:Arial,Helvetica,sans-serif; color:var(--ink); margin:0; background:#eef2f5; }
+  .wrap{ max-width:680px; margin:0 auto; padding:18px 14px 40px; }
+  .docpage{ background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.10); padding:26px 24px; }
+  .dhead{ display:flex; gap:14px; align-items:flex-start; border-bottom:3px solid var(--navy); padding-bottom:12px; }
+  .dhead img{ height:58px; }
+  .bizname{ font-weight:bold; color:var(--navy); font-size:17px; }
+  .small{ font-size:12.5px; color:var(--mut); line-height:1.5; }
+  h2{ text-transform:capitalize; color:var(--navy); margin:0; font-size:22px; }
+  table{ width:100%; border-collapse:collapse; margin-top:14px; }
+  th{ background:var(--navy); color:#fff; text-align:left; padding:8px 10px; font-size:13px; }
+  td{ padding:9px 10px; border-bottom:1px solid var(--line); font-size:14px; vertical-align:top; }
+  .r{ text-align:right; white-space:nowrap; }
+  .totbox{ max-width:300px; margin:14px 0 0 auto; }
+  .totrow{ display:flex; justify-content:space-between; padding:5px 0; font-size:14.5px; }
+  .totrow.grand{ font-weight:bold; font-size:16.5px; color:var(--navy); border-top:2px solid var(--navy); margin-top:4px; padding-top:8px; }
+  .totrow.due{ font-weight:bold; color:var(--red); }
+  .terms{ font-size:11.5px; color:var(--mut); line-height:1.55; border-top:1px solid var(--line); padding-top:10px; margin-top:16px; }
+  .msg{ background:#fff; border-radius:12px; padding:30px 24px; text-align:center; box-shadow:0 2px 12px rgba(0,0,0,.10); }
+  .callbtn{ display:inline-block; background:var(--navy); color:#fff; text-decoration:none; font-weight:bold; padding:12px 20px; border-radius:8px; margin-top:14px; font-size:15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="root"><div class="msg">Loading your document…</div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCzz9ZA7ZLDPf_5tdmaqfFqX4qK3lxcpdE",
+  authDomain: "shafa-invoice.firebaseapp.com",
+  projectId: "shafa-invoice",
+  storageBucket: "shafa-invoice.firebasestorage.app",
+  messagingSenderId: "166541457033",
+  appId: "1:166541457033:web:22d9b64ff098e32298b858"
+};
+const root = document.getElementById("root");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => "$" + (Math.round((+n||0)*100)/100).toLocaleString("en-CA",{minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtDate = ds => ds ? new Date(ds+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"}) : "";
+function fail(msg){
+  root.innerHTML = '<div class="msg"><strong>' + esc(msg) + '</strong><br><span class="small">Questions? Call Shafa Plumbing Services at 647-710-3376.</span></div>';
+}
+
+const token = new URLSearchParams(location.search).get("v") || "";
+if (!/^[a-z0-9]{16,32}$/.test(token)) { fail("This link is not valid."); }
+else {
+  try {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const ref = doc(db, "publicViews", token);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) { fail("This document could not be found. The link may be out of date."); }
+    else {
+      const d = snap.data();
+      // Record the open (best effort — the document shows either way).
+      try {
+        const patch = { viewCount: increment(1), lastViewedAt: Date.now() };
+        if (!d.firstViewedAt) patch.firstViewedAt = Date.now();
+        await updateDoc(ref, patch);
+      } catch(_){}
+      const isInv = d.type === "invoice";
+      const termsLine = !isInv ? "This estimate is valid until " + fmtDate(d.dueDate) + "."
+        : d.terms === "receipt" ? "Payment due on receipt."
+        : (d.terms === "48h" || !d.terms) ? "Payment due within 48 hours."
+        : "Payment due within " + d.terms + " days.";
+      const rows = (d.items||[]).map(i => {
+        const amt = (+i.qty||0) * (+i.rate||0);
+        return '<tr><td>' + esc(i.desc) + '</td><td class="r">' + esc(String(i.qty)) + '</td><td class="r">' + money(i.rate) + '</td><td class="r">' + money(amt) + '</td></tr>';
+      }).join("");
+      const tot = '<div class="totrow"><span>Subtotal</span><span>' + money(d.subtotal) + '</span></div>'
+        + (d.discount > 0 ? '<div class="totrow"><span>Discount</span><span>−' + money(d.discount) + '</span></div>' : "")
+        + '<div class="totrow"><span>Tax (' + esc(String(d.taxRate ?? 13)) + '% HST)</span><span>' + money(d.tax) + '</span></div>'
+        + '<div class="totrow grand"><span>Total</span><span>' + money(d.total) + '</span></div>'
+        + (d.paid > 0 ? '<div class="totrow"><span>Paid</span><span>' + money(d.paid) + '</span></div>' : "")
+        + '<div class="totrow due"><span>Balance Due</span><span>' + money(d.balance) + '</span></div>';
+      root.innerHTML =
+      '<div class="docpage">'
+      + '<div class="dhead"><img src="https://www.shafaplumbing.ca/assets/logo.png" alt="">'
+      + '<div><div class="bizname">' + esc(d.bizName) + '</div>'
+      + '<div class="small">' + esc(d.bizAddr) + '<br>' + esc(d.bizPhone) + ' · ' + esc(d.bizEmail) + '<br>' + esc(d.bizWeb) + ' · ' + esc(d.bizLicence) + '</div></div>'
+      + '<div style="margin-left:auto;text-align:right"><h2>' + esc(d.type) + '</h2><div class="small">' + esc(d.number) + '<br>' + fmtDate(d.date) + '<br>' + (isInv ? "Due: " : "Valid until: ") + fmtDate(d.dueDate) + '</div></div></div>'
+      + '<p style="margin:14px 0 0"><strong>To:</strong> ' + esc(d.clientName || "")
+        + (d.clientAddr ? '<br><span class="small">' + esc(d.clientAddr) + '</span>' : "")
+        + (d.clientPhone ? '<br><span class="small">' + esc(d.clientPhone) + '</span>' : "")
+        + (d.clientEmail ? '<br><span class="small">' + esc(d.clientEmail) + '</span>' : "") + '</p>'
+      + '<table><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr>' + rows + '</table>'
+      + '<div class="totbox">' + tot + '</div>'
+      + (d.deposit > 0 ? '<p><strong>Deposit requested: ' + money(d.deposit) + '</strong></p>' : "")
+      + '<p><strong>' + esc(termsLine) + '</strong><br>' + esc(d.payLine) + '</p>'
+      + (d.notes ? '<p><strong>Notes:</strong> ' + esc(d.notes) + '</p>' : "")
+      + '<div class="terms"><strong>Guarantee:</strong> ' + esc(d.guarantee) + '</div>'
+      + '<p style="margin-top:16px">Thank you for your business.<br>— ' + esc(d.bizName) + '</p>'
+      + '<a class="callbtn" href="tel:+16477103376">📞 Call ' + esc(d.bizPhone) + '</a>'
+      + '</div>';
+      document.title = (isInv ? "Invoice " : "Estimate ") + (d.number || "") + " — " + (d.bizName || "Shafa Plumbing Services");
+    }
+  } catch(e) {
+    fail("Something went wrong loading this document. Please try again.");
+  }
+}
+</script>
+</body>
+</html>

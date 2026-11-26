@@ -136,7 +136,7 @@ nav.tabs button.on{background:var(--c,#01375B);color:#fff}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const OWNER_EMAIL = "nurshafa3376@gmail.com";
 const firebaseConfig = {
@@ -189,7 +189,7 @@ const SEED_ITEMS = [
   {name:"Water Heater Installation", price:0}, {name:"Emergency Call", price:0}
 ];
 
-let S = { settings:null, clients:[], items:[], docs:[], expenses:[], payments:[], tab:"invoices", view:"list", editId:null, editSeg:"edit", search:"", clientSearch:"", clientId:null };
+let S = { settings:null, clients:[], items:[], docs:[], expenses:[], payments:[], tab:"invoices", view:"list", editId:null, editSeg:"edit", search:"", clientSearch:"", clientId:null, views:{} };
 
 /* ---------- AUTH ---------- */
 function liMsg(err, ok){
@@ -239,6 +239,7 @@ async function loadAll(){
   onSnapshot(collection(db,"documents"), sn => { S.docs = sn.docs.map(d=>({id:d.id,...d.data()})); if(S.view==="list") render(); });
   onSnapshot(collection(db,"expenses"), sn => { S.expenses = sn.docs.map(d=>({id:d.id,...d.data()})); if(S.view==="list"&&(S.tab==="expenses")) render(); });
   onSnapshot(collection(db,"payments"), sn => { S.payments = sn.docs.map(d=>({id:d.id,...d.data()})); if(S.view==="list"&&(S.tab==="payments")) render(); });
+  onSnapshot(collection(db,"publicViews"), sn => { S.views = {}; sn.docs.forEach(d=>{ S.views[d.id]=d.data(); }); const vb = $("#viewBox"); if (vb && typeof E !== "undefined" && E) vb.innerHTML = viewBoxInner(E); if (S.view==="list") render(); });
 }
 
 /* ---------- CALCS ---------- */
@@ -267,7 +268,7 @@ function directSendReady(){
   return /^https:\/\/script\.google\.com\//.test(APPS_SCRIPT_URL||"")
     && !!APPS_SCRIPT_TOKEN && APPS_SCRIPT_TOKEN !== "TOKEN_NOT_SET";
 }
-function docEmailPayload(){
+function docEmailPayload(viewLink){
   const d = E, st = S.settings, t = totals({...E, id:S.editId});
   const items = (d.items||[]).filter(i=>i.desc||i.rate)
     .map(i=>({desc:i.desc||"", qty:+i.qty||0, rate:+i.rate||0, amount:(+i.qty||0)*(+i.rate||0)}));
@@ -280,7 +281,7 @@ function docEmailPayload(){
     items,
     subtotal: t.sub, discount: t.disc, taxRate: t.rate, tax: t.tax, total: t.total, paid: t.paid, balance: t.balance,
     deposit: (d.deposit && d.deposit.enabled) ? (+d.deposit.value||0) : 0,
-    notes: d.notes||"", payLine: st.payLine||"", guarantee: st.guarantee||"",
+    notes: d.notes||"", viewLink: viewLink||"", payLine: st.payLine||"", guarantee: st.guarantee||"",
     bizName: st.bizName||"", bizAddr: st.bizAddr||"", bizPhone: st.bizPhone||"",
     bizEmail: st.bizEmail||"", bizWeb: st.bizWeb||"", bizLicence: st.bizLicence||""
   };
@@ -299,10 +300,11 @@ async function sendDocEmail(btn, mailtoFallback){
   try {
     // text/plain keeps this a CORS "simple request" (no preflight) —
     // Apps Script web apps cannot answer an OPTIONS preflight.
+    const viewLink = await ensureViewLink().catch(()=> "");
     const res = await fetch(APPS_SCRIPT_URL, {
       method: "POST",
       headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify(docEmailPayload())
+      body: JSON.stringify(docEmailPayload(viewLink))
     });
     const data = JSON.parse(await res.text());
     if (!data || data.ok !== true) throw new Error((data && data.error) || "send_failed");
@@ -331,6 +333,50 @@ function askReview(name, phone){
   const msg = `Hi ${name||"there"}, thank you for choosing ${S.settings.bizName}! If you were happy with our work, we'd really appreciate a quick Google review — it helps our small business a lot:\n${REVIEW_LINK}`;
   if (p) window.open("https://wa.me/"+p+"?text="+encodeURIComponent(msg), "_blank");
   else { if (navigator.clipboard) navigator.clipboard.writeText(REVIEW_LINK).catch(()=>{}); alert("No phone number saved for this client, so WhatsApp can't open. The review link is:\n"+REVIEW_LINK+"\n(It has been copied — paste it into a text or email.)"); }
+}
+/* ---------- CUSTOMER VIEW LINK + OPEN TRACKING ----------
+   Each document can get a public view link (view.html?v=TOKEN). The
+   snapshot lives in Firestore collection "publicViews" under an
+   unguessable token; the customer page records every open there and
+   this app shows the "Opened" stamp live. Photos are NOT copied into
+   the public snapshot. */
+const VIEW_BASE = "https://www.shafaplumbing.ca/invoice/view.html?v=";
+function newViewToken(){ const chars = "abcdefghjkmnpqrstuvwxyz23456789"; const a = new Uint8Array(18); crypto.getRandomValues(a); return [...a].map(b=>chars[b%31]).join(""); }
+function viewSnapshot(d){
+  const st = S.settings, t = totals({...d, id:d.id});
+  return { docId: d.id, type: d.type, number: d.number, date: d.date||"", dueDate: d.dueDate||"", terms: d.terms||"",
+    clientName: d.clientName||"", clientAddr: d.clientAddr||"", clientPhone: d.clientPhone||"", clientEmail: d.clientEmail||"",
+    items: (d.items||[]).filter(i=>i.desc||i.rate).map(i=>({desc:i.desc||"", qty:+i.qty||0, rate:+i.rate||0})),
+    subtotal: t.sub, discount: t.disc, taxRate: t.rate, tax: t.tax, total: t.total, paid: t.paid, balance: t.balance,
+    deposit: (d.deposit && d.deposit.enabled) ? (+d.deposit.value||0) : 0, notes: d.notes||"",
+    bizName: st.bizName||"", bizAddr: st.bizAddr||"", bizPhone: st.bizPhone||"", bizEmail: st.bizEmail||"",
+    bizWeb: st.bizWeb||"", bizLicence: st.bizLicence||"", payLine: st.payLine||"", guarantee: st.guarantee||"", updatedAt: Date.now() };
+}
+async function ensureViewLink(){
+  const d = curDoc(); if (!d) return "";
+  let token = E.viewToken || d.viewToken || "";
+  const snap = viewSnapshot({...E, id:S.editId});
+  if (!token){
+    token = newViewToken(); E.viewToken = token;
+    await updateDoc(doc(db,"documents", S.editId), { viewToken: token });
+    await setDoc(doc(db,"publicViews", token), {...snap, viewCount:0, firstViewedAt:0, lastViewedAt:0, createdAt: Date.now()});
+  } else {
+    await setDoc(doc(db,"publicViews", token), snap, {merge:true});
+  }
+  return VIEW_BASE + token;
+}
+function fmtDateTime(ts){ if (!ts) return ""; return new Date(ts).toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
+function viewBoxInner(d){
+  if (!d || !d.viewToken) return '<span class="small">No view link yet.</span>';
+  const vs = S.views[d.viewToken];
+  if (!vs || !vs.viewCount) return '👁 <strong>Not opened yet</strong><br><span class="small">When the customer opens the view link, the open time shows here.</span>';
+  return '👁 <strong>Opened ✓</strong><br><span class="small">First opened: ' + fmtDateTime(vs.firstViewedAt) + '<br>Opened ' + vs.viewCount + ' time' + (vs.viewCount>1?"s":"") + ' · Last: ' + fmtDateTime(vs.lastViewedAt) + '</span>';
+}
+function viewBadge(d){
+  const vs = d && d.viewToken ? S.views[d.viewToken] : null;
+  if (!vs) return "";
+  if (!vs.viewCount) return ' <span class="badge b-draft">👁 Not opened</span>';
+  return ' <span class="badge b-paid">👁 Opened ×' + vs.viewCount + '</span>';
 }
 function priceMap(){
   const m = new Map();
@@ -423,7 +469,7 @@ function renderDocList(type){
     h += `<div class="yearhead"><span>${y}</span><span>${money(yd.reduce((a,d)=>a+totals(d).total,0))}</span></div>`;
     for (const d of yd){
       const t = totals(d), st = docStatus(d);
-      h += `<div class="docrow" data-open="${d.id}"><div><div class="nm">${esc(d.clientName||"No client")}</div><div class="sub">${esc(d.number)} · ${fmtDate(d.date)}</div><span class="badge ${badgeCls(st)}">${st}</span></div><div class="amt">${money(t.total)}${t.balance>0&&t.balance<t.total?`<div class="sub" style="color:var(--red)">Bal ${money(t.balance)}</div>`:""}</div></div>`;
+      h += `<div class="docrow" data-open="${d.id}"><div><div class="nm">${esc(d.clientName||"No client")}</div><div class="sub">${esc(d.number)} · ${fmtDate(d.date)}</div><span class="badge ${badgeCls(st)}">${st}</span>${viewBadge(d)}</div><div class="amt">${money(t.total)}${t.balance>0&&t.balance<t.total?`<div class="sub" style="color:var(--red)">Bal ${money(t.balance)}</div>`:""}</div></div>`;
     }
   }
   main.innerHTML = h;
@@ -733,11 +779,13 @@ function renderEditor(){
       <p class="small" id="photoMsg">Photos are stored privately in your account and print with the document.</p>
     </div>
     <button class="btn btn-red" id="saveBtn">Save ${isInv?"Invoice":"Estimate"}</button>
+    <div class="card"><h3>Customer view link</h3><div id="viewBox">${E.viewToken ? viewBoxInner(E) : '<span class="small">No view link yet — tap "Copy view link" below, or one is made automatically when you send this document.</span>'}</div></div>
     <div class="menu-list" style="margin-top:14px">
       ${!isInv?`<button id="mMakeInv">🧾 Make Invoice from this estimate</button>`:""}
       ${isInv && t.balance<=0 && t.total>0 ? `<button id="mReview">⭐ Ask for a Google review</button>` : ""}
       <button id="mDup">📄 Duplicate</button>
       <button id="mShare">🔗 Share summary</button>
+      <button id="mView">🔗 Copy view link</button>
       <button id="mWa">🟢 Send by WhatsApp</button>
       <button id="mSms">💬 Send by Text Message</button>
       <button id="mEmail">✉️ Send by Email</button>
@@ -754,9 +802,9 @@ function renderEditor(){
     const lines = (E.items||[]).filter(i=>i.desc||i.rate).map(i=>`• ${i.desc} — ${money((+i.qty||0)*(+i.rate||0))}`).join("\n");
     const txt = `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t2.sub)}${t2.disc?`\nDiscount: −${money(t2.disc)}`:""}\nTax (${t2.rate}% HST): ${money(t2.tax)}\nTotal: ${money(t2.total)}${t2.paid?`\nPaid: ${money(t2.paid)}`:""}\nBalance due: ${money(t2.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}`;
     let ph = (E.clientPhone||"").replace(/\D/g,""); if (ph.length===10) ph = "1"+ph;
-    const bw = $("#pWa"); if (bw) bw.onclick = () => window.open("https://wa.me/"+(ph||"")+"?text="+encodeURIComponent(txt), "_blank");
-    const bs = $("#pSms"); if (bs) bs.onclick = () => { window.location.href = "sms:"+(ph? "+"+ph : "")+"?&body="+encodeURIComponent(txt); };
-    const be = $("#pEmail"); if (be) be.onclick = ev => { sendDocEmail(ev.currentTarget, () => { window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(`${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`)+"&body="+encodeURIComponent(txt); }); };
+    const bw = $("#pWa"); if (bw) bw.onclick = async () => { const link = await ensureViewLink().catch(()=> ""); window.open("https://wa.me/"+(ph||"")+"?text="+encodeURIComponent(link? txt+"\nView it here: "+link : txt), "_blank"); };
+    const bs = $("#pSms"); if (bs) bs.onclick = async () => { const link = await ensureViewLink().catch(()=> ""); window.location.href = "sms:"+(ph? "+"+ph : "")+"?&body="+encodeURIComponent(link? txt+"\nView it here: "+link : txt); };
+    const be = $("#pEmail"); if (be) be.onclick = ev => { sendDocEmail(ev.currentTarget, async () => { const link = await ensureViewLink().catch(()=> ""); window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(`${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`)+"&body="+encodeURIComponent(link? txt+"\nView it here: "+link : txt); }); };
     return;
   }
   if (S.editSeg==="history"){ bindHistory(E); return; }
@@ -845,6 +893,7 @@ function bindEditor(E0, t0){
   $("#saveBtn").onclick = async () => {
     const {id, ...data} = E;
     await updateDoc(doc(db,"documents", S.editId), data);
+    if (E.viewToken) { try { await setDoc(doc(db,"publicViews", E.viewToken), viewSnapshot({...E, id:S.editId}), {merge:true}); } catch(_){} }
     if (E.clientName && !S.clients.some(c=>(c.name||"").toLowerCase()===E.clientName.toLowerCase()))
       await addDoc(collection(db,"clients"), {name:E.clientName, phone:E.clientPhone||"", email:E.clientEmail||"", address:E.clientAddr||""});
     alert("Saved."); S.view="list"; E=null; render();
@@ -864,21 +913,24 @@ function bindEditor(E0, t0){
     S.editId = ref.id; E=null; renderEditor();
   };
   const mr = $("#mReview"); if (mr) mr.onclick = () => askReview(E.clientName, E.clientPhone);
+  const mvb = $("#mView"); if (mvb) mvb.onclick = async () => { const link = await ensureViewLink().catch(()=> ""); if (!link) { alert("Could not make the view link — check your connection and try again."); return; } try { await navigator.clipboard.writeText(link); alert("View link copied. Paste it into WhatsApp, a text or an email.\n\nWhen the customer opens it, you will see \u201cOpened \u2713\u201d on this page."); } catch(_){ alert("Your view link:\n"+link); } const vb2 = $("#viewBox"); if (vb2) vb2.innerHTML = viewBoxInner(E); };
   $("#mShare").onclick = async () => {
     const t = totals({...E, id:S.editId});
-    const txt = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}\nFor: ${E.clientName}\nTotal: ${money(t.total)} · Balance due: ${money(t.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nCall/WhatsApp ${S.settings.bizPhone} · ${S.settings.bizWeb}`;
+    const link = await ensureViewLink().catch(()=> "");
+    const txt = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}\nFor: ${E.clientName}\nTotal: ${money(t.total)} · Balance due: ${money(t.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nCall/WhatsApp ${S.settings.bizPhone} · ${S.settings.bizWeb}${link?"\nView it here: "+link:""}`;
     if (navigator.share) { try { await navigator.share({text:txt}); } catch(_){} }
     else { await navigator.clipboard.writeText(txt); alert("Summary copied — paste it into WhatsApp or email."); }
   };
-  const buildSummary = () => {
+  const buildSummary = async () => {
     const t = totals({...E, id:S.editId});
     const lines = (E.items||[]).filter(i=>i.desc||i.rate).map(i=>`• ${i.desc} — ${money((+i.qty||0)*(+i.rate||0))}`).join("\n");
-    return { t, txt: `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t.sub)}${t.disc?`\nDiscount: −${money(t.disc)}`:""}\nTax (13% HST): ${money(t.tax)}\nTotal: ${money(t.total)}${t.paid?`\nPaid: ${money(t.paid)}`:""}\nBalance due: ${money(t.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}` };
+    const link = await ensureViewLink().catch(()=> "");
+    return { t, txt: `${S.settings.bizName}\n${E.type==="invoice"?"Invoice":"Estimate"} ${E.number} — ${fmtDate(E.date)}\nFor: ${E.clientName}\n${lines}\nSubtotal: ${money(t.sub)}${t.disc?`\nDiscount: −${money(t.disc)}`:""}\nTax (13% HST): ${money(t.tax)}\nTotal: ${money(t.total)}${t.paid?`\nPaid: ${money(t.paid)}`:""}\nBalance due: ${money(t.balance)}\n${E.type==="invoice" ? "Payment due within 48 hours." : "This estimate is valid until "+fmtDate(E.dueDate)+"."}\nWe accept cash, debit, credit cards and e-transfer.\nQuestions? Call/WhatsApp ${S.settings.bizPhone}${link?"\nView it here: "+link:""}` };
   };
   const custPhone = () => { let p = (E.clientPhone||"").replace(/\D/g,""); if (p.length===10) p = "1"+p; return p; };
-  $("#mWa").onclick = () => { const {txt} = buildSummary(); const p = custPhone(); window.open("https://wa.me/"+(p||"")+"?text="+encodeURIComponent(txt), "_blank"); };
-  $("#mSms").onclick = () => { const {txt} = buildSummary(); const p = custPhone(); window.location.href = "sms:"+(p? "+"+p : "")+"?&body="+encodeURIComponent(txt); };
-  $("#mEmail").onclick = ev => { const {txt} = buildSummary(); const subj = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`; sendDocEmail(ev.currentTarget, () => { window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(txt); }); };
+  $("#mWa").onclick = async () => { const {txt} = await buildSummary(); const p = custPhone(); window.open("https://wa.me/"+(p||"")+"?text="+encodeURIComponent(txt), "_blank"); };
+  $("#mSms").onclick = async () => { const {txt} = await buildSummary(); const p = custPhone(); window.location.href = "sms:"+(p? "+"+p : "")+"?&body="+encodeURIComponent(txt); };
+  $("#mEmail").onclick = async ev => { const {txt} = await buildSummary(); const subj = `${S.settings.bizName} — ${E.type==="invoice"?"Invoice":"Estimate"} ${E.number}`; sendDocEmail(ev.currentTarget, () => { window.location.href = "mailto:"+(E.clientEmail||"")+"?subject="+encodeURIComponent(subj)+"&body="+encodeURIComponent(txt); }); };
   $("#mPrint").onclick = () => { S.editSeg="preview"; renderEditor(); setTimeout(()=>window.print(), 150); };
   $("#mDel").onclick = async () => { if (!confirm("Delete this "+E.type+"? This cannot be undone.")) return; await deleteDoc(doc(db,"documents", S.editId)); S.view="list"; E=null; render(); };
 }
