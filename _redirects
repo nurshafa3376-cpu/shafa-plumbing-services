@@ -1,2 +1,18 @@
-# Netlify: serve the single-page site for every path (SPA fallback, HTTP 200, no redirect)
+# Shafa Plumbing Services — old Wix URL recovery redirects (301s first, SPA fallback last)
+/leak-detection/  /services/leak-detection/  301
+/sewer-repair/  /services/sewer-repair/  301
+/drain-camera-inspection/  /services/drain-camera-inspection/  301
+/hydro-jetting/  /services/hydro-jetting/  301
+/drain-services/  /services/drain-cleaning/  301
+/plumbing-services/  /  301
+/water-heater-repair/  /services/water-heater/  301
+/drain-cleaning/  /services/drain-cleaning/  301
+/toilet-repair/  /services/toilet-repair/  301
+/plumbing-repair/  /  301
+/pipe-repair/  /services/water-lines/  301
+/burst-pipe-repair/  /services/emergency-plumber/  301
+/water-main-repair/  /services/water-lines/  301
+/sump-pump-installation/  /services/sump-pump/  301
+/frozen-pipe-repair/  /services/frozen-pipe-repair/  301
+/shower-repair/  /services/shower-bathtub/  301
 /*  /index.html  200
