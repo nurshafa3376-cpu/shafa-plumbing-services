@@ -21,4 +21,13 @@
 /drain-cleaning-toronto/  /services/drain-cleaning/  301
 /toilet-repair-toronto  /services/toilet-repair/  301
 /toilet-repair-toronto/  /services/toilet-repair/  301
+/emergency-plumber-toronto  /services/emergency-plumber/  301
+/emergency-plumber-toronto/  /services/emergency-plumber/  301
+/sump-pump-toronto  /services/sump-pump/  301
+/sump-pump-toronto/  /services/sump-pump/  301
+/water-heater-toronto  /services/water-heater/  301
+/water-heater-toronto/  /services/water-heater/  301
+/frozen-pipe-repair-toronto  /services/frozen-pipe-repair/  301
+/frozen-pipe-repair-toronto/  /services/frozen-pipe-repair/  301
+/_api/one-app-session-web/v3/businesses  /  301
 /*  /index.html  200
