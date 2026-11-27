@@ -17,4 +17,8 @@
 /frozen-pipe-repair/  /services/frozen-pipe-repair/  301
 /shower-repair/  /services/shower-bathtub/  301
 /areas/mississauga/  /  301
+/drain-cleaning-toronto  /services/drain-cleaning/  301
+/drain-cleaning-toronto/  /services/drain-cleaning/  301
+/toilet-repair-toronto  /services/toilet-repair/  301
+/toilet-repair-toronto/  /services/toilet-repair/  301
 /*  /index.html  200
